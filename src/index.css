@@ -8,7 +8,7 @@
 }
 
 .overlay__path {
-  fill: #065f46;
+  fill: url(#transitionPattern);
   stroke-width: 2px;
   stroke: #fbbf24;
 }
