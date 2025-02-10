@@ -23,7 +23,8 @@ function App() {
               <a href="#" className="text-white">Calender</a>
               <a href="#" className="text-white">Prayer Timings</a>
               <a href="#" className="text-white">Quran</a>
-              <a href="#" className="text-white">Store</a>
+              <a href="#" className="text-white">Athkar</a>
+              <a href="/store" className="text-white">Store</a>
               <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
                 Sign Up
               </button>
@@ -50,7 +51,8 @@ function App() {
                 <a href="#" className="text-white">Calender</a>
                 <a href="#" className="text-white">Prayer Timings</a>
                 <a href="#" className="text-white">Quran</a>
-                <a href="#" className="text-white">Store</a>
+                <a href="#" className="text-white">Athkar</a>
+                <a href="/store" className="text-white">Store</a>
                 <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
                   Sign Up
                 </button>
