@@ -1,8 +1,38 @@
 import React, { useState } from 'react';
 import { Moon, X, Menu, Facebook, Youtube, Twitter, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useTransition } from './contexts/TransitionContext';
+import gsap from 'gsap';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { setIsTransitioning } = useTransition();
+
+  const handleStoreClick = () => {
+    setIsTransitioning(true);
+    const timeline = gsap.timeline({
+      onComplete: () => {
+        navigate('/store');
+        setIsTransitioning(false);
+      }
+    });
+
+    timeline
+      .set('.overlay__path', {
+        attr: { d: 'M 0 0 h 0 c 0 50 0 50 0 100 H 0 V 0 Z' }
+      })
+      .to('.overlay__path', { 
+        duration: 0.8,
+        ease: 'power3.in',
+        attr: { d: 'M 0 0 h 33 c -30 54 113 65 0 100 H 0 V 0 Z' }
+      })
+      .to('.overlay__path', { 
+        duration: 0.2,
+        ease: 'power1',
+        attr: { d: 'M 0 0 h 100 c 0 50 0 50 0 100 H 0 V 0 Z' }
+      });
+  };
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "linear-gradient(to left, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url('/src/assets/images/ramadan.jpeg')" }}>
@@ -11,7 +41,6 @@ function App() {
         <nav className="absolute top-0 left-0 right-0 p-4 z-50">
           <div className="container mx-auto flex items-center justify-between md:justify-center relative">
             <div className="w-12 h-12 md:w-16 md:h-16 relative md:absolute md:left-0">
-              {/* Logo placeholder */}
               <div className="w-full h-full rounded-full bg-yellow-400/90 flex items-center justify-center">
                 <Moon className="text-emerald-900 w-8 h-8 md:w-12 md:h-12" />
               </div>
@@ -24,7 +53,12 @@ function App() {
               <a href="#" className="text-white">Prayer Timings</a>
               <a href="#" className="text-white">Quran</a>
               <a href="#" className="text-white">Athkar</a>
-              <a href="/store" className="text-white">Store</a>
+              <button 
+                onClick={handleStoreClick}
+                className="text-white hover:text-yellow-400 transition-colors"
+              >
+                Store
+              </button>
               <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
                 Sign Up
               </button>
@@ -52,7 +86,12 @@ function App() {
                 <a href="#" className="text-white">Prayer Timings</a>
                 <a href="#" className="text-white">Quran</a>
                 <a href="#" className="text-white">Athkar</a>
-                <a href="/store" className="text-white">Store</a>
+                <button 
+                  onClick={handleStoreClick}
+                  className="text-white hover:text-yellow-400 transition-colors text-left"
+                >
+                  Store
+                </button>
                 <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
                   Sign Up
                 </button>
@@ -93,21 +132,15 @@ function App() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors flex items-center space-x-2">
+                <button 
+                  onClick={handleStoreClick}
+                  className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors flex items-center space-x-2"
+                >
                   <BookOpen className="w-5 h-5" />
                   <span>Get Ramadan Tips Book Now</span>
                 </button>
               </div>
             </div>
-
-            {/* Right Column - Mosque Illustration */}
-            {/* <div className="relative flex items-center justify-center mt-8 md:mt-0">
-              <img 
-                src="" 
-                alt="Ramadan Kareem Illustration" 
-                className="w-full max-w-[300px] md:max-w-[384px] object-contain"
-              />
-            </div> */}
           </div>
         </div>
 
@@ -124,6 +157,11 @@ function App() {
           </a>
         </div>
       </div>
+
+      {/* SVG Transition Overlay */}
+      <svg className="overlay fixed inset-0 pointer-events-none" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path className="overlay__path" vector-effect="non-scaling-stroke" d="M 0 0 h 0 c 0 50 0 50 0 100 H 0 V 0 Z" />
+      </svg>
     </div>
   );
 }

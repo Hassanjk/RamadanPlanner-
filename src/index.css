@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.overlay {
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.overlay__path {
+  fill: #065f46;
+  stroke-width: 2px;
+  stroke: #fbbf24;
+}
