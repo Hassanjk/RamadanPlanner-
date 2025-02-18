@@ -9,11 +9,11 @@ function App() {
   const navigate = useNavigate();
   const { setIsTransitioning } = useTransition();
 
-  const handleStoreClick = () => {
+  const handleNavigation = (path: string) => {
     setIsTransitioning(true);
     const timeline = gsap.timeline({
       onComplete: () => {
-        navigate('/store');
+        navigate(path);
         setIsTransitioning(false);
       }
     });
@@ -49,12 +49,27 @@ function App() {
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-12">
               <a href="#" className="text-white border-b-2 border-white">Home</a>
-              <a href="#" className="text-white">Calender</a>
-              <a href="#" className="text-white">Prayer Timings</a>
-              <a href="#" className="text-white">Quran</a>
-              <a href="#" className="text-white">Athkar</a>
               <button 
-                onClick={handleStoreClick}
+                onClick={() => handleNavigation('/ramadan-calendar')}
+                className="text-white hover:text-yellow-400 transition-colors"
+              >
+                Calendar
+              </button>
+              <button 
+                onClick={() => handleNavigation('/prayer-timings')}
+                className="text-white hover:text-yellow-400 transition-colors"
+              >
+                Prayer Timings
+              </button>
+              <button 
+                onClick={() => handleNavigation('/quran')}
+                className="text-white hover:text-yellow-400 transition-colors"
+              >
+                Quran
+              </button>
+              <a href="#" className="text-white">Recipe</a>
+              <button 
+                onClick={() => handleNavigation('/store')}
                 className="text-white hover:text-yellow-400 transition-colors"
               >
                 Store
@@ -82,12 +97,27 @@ function App() {
             <div className="md:hidden absolute top-full left-0 right-0 bg-emerald-900/95 border-t border-yellow-400/20 p-4">
               <div className="flex flex-col space-y-4">
                 <a href="#" className="text-white border-b-2 border-white w-fit">Home</a>
-                <a href="#" className="text-white">Calender</a>
-                <a href="#" className="text-white">Prayer Timings</a>
-                <a href="#" className="text-white">Quran</a>
-                <a href="#" className="text-white">Athkar</a>
                 <button 
-                  onClick={handleStoreClick}
+                  onClick={() => handleNavigation('/ramadan-calendar')}
+                  className="text-white hover:text-yellow-400 transition-colors text-left"
+                >
+                  Calendar
+                </button>
+                <button 
+                  onClick={() => handleNavigation('/prayer-timings')}
+                  className="text-white hover:text-yellow-400 transition-colors text-left"
+                >
+                  Prayer Timings
+                </button>
+                <button 
+                  onClick={() => handleNavigation('/quran')}
+                  className="text-white hover:text-yellow-400 transition-colors text-left"
+                >
+                  Quran
+                </button>
+                <a href="#" className="text-white">Recipe</a>
+                <button 
+                  onClick={() => handleNavigation('/store')}
                   className="text-white hover:text-yellow-400 transition-colors text-left"
                 >
                   Store
@@ -133,7 +163,7 @@ function App() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <button 
-                  onClick={handleStoreClick}
+                  onClick={() => handleNavigation('/store')}
                   className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors flex items-center space-x-2"
                 >
                   <BookOpen className="w-5 h-5" />
