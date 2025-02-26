@@ -1,49 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Moon, ArrowLeft, Search, PlayCircle, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getAllSurahs } from '../services/quranService';
+import Cookies from 'js-cookie';
 
 interface Surah {
   number: number;
   name: string;
-  arabicName: string;
-  versesCount: number;
-  type: 'مكية' | 'مدنية';
+  englishName: string;
+  englishNameTranslation: string;
+  numberOfAyahs: number;
+  revelationType: string;
 }
 
 function Quran() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [surahs, setSurahs] = useState<Surah[]>([]);
+  const [savedPage, setSavedPage] = useState<string | undefined>();
+  const [savedVerse, setSavedVerse] = useState<string | undefined>();
 
-  const surahs: Surah[] = [
-    { number: 1, name: 'Al-Fatihah', arabicName: 'سُورَةُ ٱلْفَاتِحَةِ', versesCount: 7, type: 'مدنية' },
-    { number: 2, name: 'Al-Baqarah', arabicName: 'سُورَةُ البَقَرَةِ', versesCount: 286, type: 'مكية' },
-    { number: 3, name: 'Al-Imran', arabicName: 'سُورَةُ آلِ عِمۡرَانَ', versesCount: 200, type: 'مكية' },
-    { number: 4, name: 'An-Nisa', arabicName: 'سُورَةُ النِّسَاءِ', versesCount: 176, type: 'مكية' },
-    { number: 5, name: 'Al-Ma\'idah', arabicName: 'سُورَةُ المَائِدَةِ', versesCount: 120, type: 'مدنية' },
-    { number: 6, name: 'Al-An\'am', arabicName: 'سُورَةُ الأَنۡعَامِ', versesCount: 165, type: 'مكية' },
-    { number: 7, name: 'Al-A\'raf', arabicName: 'سُورَةُ الأَعۡرَافِ', versesCount: 206, type: 'مكية' },
-    { number: 8, name: 'Al-Anfal', arabicName: 'سُورَةُ الأَنفَالِ', versesCount: 75, type: 'مدنية' },
-  ];
+  useEffect(() => {
+    loadSurahs();
+    checkSavedProgress();
+  }, []);
 
+  const loadSurahs = async () => {
+    try {
+      const data = await getAllSurahs();
+      setSurahs(data);
+    } catch (error) {
+      console.error('Error loading surahs:', error);
+    }
+  };
+
+  const checkSavedProgress = () => {
+    const page = Cookies.get('quranPage');
+    const verse = Cookies.get('quranVerse');
+    setSavedPage(page);
+    setSavedVerse(verse);
+  };
+  
   // Convert numbers to Arabic numerals
   const toArabicNumbers = (num: number): string => {
     const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
     return num.toString().split('').map(digit => arabicNumbers[parseInt(digit)]).join('');
   };
 
-  const filteredSurahs = surahs.filter(surah => 
-    surah.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    surah.arabicName.includes(searchQuery)
-  );
-
   const handleSurahClick = (surahNumber: number) => {
     navigate(`/quran/surah/${surahNumber}`);
   };
 
+  const continuePreviousReading = () => {
+    if (savedPage) {
+      navigate(`/quran/page/${savedPage}${savedVerse ? `/${savedVerse}` : ''}`);
+    }
+  };
+
+  const filteredSurahs = surahs.filter(surah =>
+    surah.englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    surah.name.includes(searchQuery)
+  );
+
   return (
-    <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
-         style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}>
-      {/* Navigation */}
+    <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-fixed bg-no-repeat bg-emerald-900/95" 
+         style={{ 
+           backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')",
+           backgroundSize: "cover",
+           backgroundPosition: "center",
+           backgroundAttachment: "fixed"
+         }}>
       <nav className="p-4">
         <div className="container mx-auto flex items-center justify-between">
           <button 
@@ -63,11 +89,20 @@ function Quran() {
       </nav>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-6xl font-bold text-yellow-400 mb-4 font-arabic">
             القرآن الكريم
           </h1>
+          
+          {savedPage && (
+            <button
+              onClick={continuePreviousReading}
+              className="mb-8 bg-yellow-400/20 text-yellow-400 px-6 py-3 rounded-full hover:bg-yellow-400/30 transition-colors"
+            >
+              Continue Reading from Page {savedPage}
+            </button>
+          )}
+
           <div className="max-w-2xl mx-auto">
             <div className="relative">
               <input
@@ -82,7 +117,6 @@ function Quran() {
           </div>
         </div>
 
-        {/* Surahs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredSurahs.map((surah) => (
             <div 
@@ -94,17 +128,19 @@ function Quran() {
                 <div className="w-10 h-10 bg-emerald-800/50 rounded-full flex items-center justify-center text-yellow-400 font-arabic">
                   {toArabicNumbers(surah.number)}
                 </div>
-                <span className="text-sm text-yellow-400 font-arabic">{surah.type}</span>
+                <span className="text-sm text-yellow-400 font-arabic">
+                  {surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}
+                </span>
               </div>
               
               <h3 className="text-2xl font-bold text-white mb-1 font-arabic text-right">
-                {surah.arabicName}
+                {surah.name}
               </h3>
-              <p className="text-yellow-400 text-sm mb-4">{surah.name}</p>
+              <p className="text-yellow-400 text-sm mb-4">{surah.englishName}</p>
               
               <div className="flex justify-between items-center">
                 <div className="text-white text-sm font-arabic">
-                  عدد الآيات: {toArabicNumbers(surah.versesCount)}
+                  عدد الآيات: {toArabicNumbers(surah.numberOfAyahs)}
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
