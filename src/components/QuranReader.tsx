@@ -1,223 +1,177 @@
 import { useState, useEffect, useRef } from 'react';
-import { getSurah, getPage, QuranVerse, SurahResponse } from '../services/quranService';
+import { getSurah, QuranVerse } from '../services/quranService';
 import Cookies from 'js-cookie';
 
 interface QuranReaderProps {
-  initialPage?: number;
-  initialAyah?: number;
-  surahNumber?: number;
-  mode?: 'page' | 'surah';
+  surahNumber: number;
+  mode: 'surah' | 'page';
+  initialVerse?: number;
+  translationEdition?: string;
+}
+
+interface SurahInfo {
+  number: number;
+  name: string;
+  englishName: string;
+  englishNameTranslation: string;
+  revelationType: string;
+  numberOfAyahs: number;
 }
 
 const QuranReader = ({ 
-  initialPage = 1, 
-  initialAyah = 0, 
-  surahNumber,
-  mode = 'page'
+  surahNumber, 
+  mode, 
+  initialVerse = 0,
+  translationEdition = 'en.asad'  // Default to Muhammad Asad's translation
 }: QuranReaderProps) => {
-  const [page, setPage] = useState(initialPage);
   const [verses, setVerses] = useState<QuranVerse[]>([]);
-  const [currentVerse, setCurrentVerse] = useState<number>(initialAyah);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Set initial loading state to true
-  const [reader, setReader] = useState('ar.alafasy');
+  const [currentVerse, setCurrentVerse] = useState<number>(initialVerse);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [volume, setVolume] = useState<number>(1);
+  const [repeatMode, setRepeatMode] = useState<'none' | 'verse' | 'page'>('none');
+  const [surahInfo, setSurahInfo] = useState<SurahInfo | null>(null);
+  const [reader, setReader] = useState<string>('ar.alafasy');
+  const [currentTranslation, setCurrentTranslation] = useState<string>(translationEdition);
+  
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [volume, setVolume] = useState(100);
-  const [repeatMode, setRepeatMode] = useState<'page' | 'verse' | 'none'>('none');
-  const [verseRepeatCount, setVerseRepeatCount] = useState(2);
-  const [currentRepeat, setCurrentRepeat] = useState(0);
-  const [bookmarks, setBookmarks] = useState<string[]>([]);
-  const [surahInfo, setSurahInfo] = useState<{
-    name: string;
-    englishName: string;
-    numberOfAyahs: number;
-    revelationType: string;
-  } | null>(null);
+  const verseRepeatCountRef = useRef<number>(0);
+  const maxVerseRepeat = 3;
 
+  // Load verses for the current surah
   useEffect(() => {
-    // Reset loading state when surah or page changes
-    setIsLoading(true);
-    
-    if (mode === 'page') {
-      loadPage();
-    } else if (mode === 'surah' && surahNumber) {
-      loadSurah();
-    }
-    
-    // Load bookmarks from cookies
-    const savedBookmarks = Cookies.get('quranBookmarks');
-    if (savedBookmarks) {
-      try {
-        setBookmarks(JSON.parse(savedBookmarks));
-      } catch (e) {
-        console.error('Error parsing bookmarks:', e);
-      }
-    }
-  }, [page, reader, surahNumber, mode]);
-
-  const loadPage = async () => {
-    try {
+    const loadVerses = async () => {
       setIsLoading(true);
-      const data = await getPage(page, reader);
-      if (data && data.ayahs) {
-        setVerses(data.ayahs);
-        if (data.ayahs.length > 0) {
-          setSurahInfo({
-            name: data.ayahs[0].surah.name,
-            englishName: data.ayahs[0].surah.englishName,
-            numberOfAyahs: data.ayahs.length,
-            revelationType: data.ayahs[0].surah.revelationType
-          });
-        }
-      } else {
-        setVerses([]);
-        console.error("Invalid page data format", data);
-      }
-    } catch (error) {
-      console.error('Error loading page:', error);
-      setVerses([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadSurah = async () => {
-    if (!surahNumber) {
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const ayahs = await getSurah(surahNumber, reader);
+      setError(null);
       
-      if (ayahs && ayahs.length > 0) {
-        setVerses(ayahs);
+      try {
+        const data = await getSurah(surahNumber, reader, currentTranslation);
+        setVerses(data);
         
-        // Get surah info from the first ayah
-        const firstVerse = ayahs[0];
-        if (firstVerse && firstVerse.surah) {
+        // Extract surah info from the first verse
+        if (data.length > 0) {
+          const firstVerse = data[0];
           setSurahInfo({
+            number: firstVerse.surah.number,
             name: firstVerse.surah.name,
             englishName: firstVerse.surah.englishName,
-            numberOfAyahs: ayahs.length,
-            revelationType: firstVerse.surah.revelationType
-          });
-        } else {
-          // Fallback if surah info is not available
-          setSurahInfo({
-            name: `Surah ${surahNumber}`,
-            englishName: `Surah ${surahNumber}`,
-            numberOfAyahs: ayahs.length,
-            revelationType: ""
+            englishNameTranslation: '',  // This might not be available in the API response
+            revelationType: firstVerse.surah.revelationType,
+            numberOfAyahs: data.length
           });
         }
-      } else {
-        setVerses([]);
-        console.error("No ayahs returned for surah", surahNumber);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load Quran data');
+        console.error('Error in QuranReader:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(`Error loading surah ${surahNumber}:`, error);
-      setVerses([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  const playVerse = async (index: number) => {
-    if (!verses || !verses[index]) return;
-    
-    // Update current verse index
-    setCurrentVerse(index);
-    
-    if (audioRef.current) {
-      // If we're already playing the same verse, toggle play/pause
-      if (currentVerse === index && isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-        return;
-      }
-      
-      audioRef.current.src = verses[index].audio;
-      audioRef.current.volume = volume / 100;
-      try {
-        await audioRef.current.play();
-        setIsPlaying(true);
-      } catch (error) {
-        console.error("Audio playback error:", error);
-        setIsPlaying(false);
-      }
-    }
-  };
+    loadVerses();
+  }, [surahNumber, reader, currentTranslation]);
 
-  const handleAudioEnd = () => {
-    if (repeatMode === 'verse' && currentRepeat < verseRepeatCount - 1) {
-      setCurrentRepeat(prev => prev + 1);
-      playVerse(currentVerse);
-    } else {
-      setCurrentRepeat(0);
-      if (currentVerse < verses.length - 1) {
-        if (repeatMode === 'page' || repeatMode === 'none') {
-          playVerse(currentVerse + 1);
-        }
-      } else if (repeatMode === 'page') {
-        playVerse(0);
-      }
-    }
-  };
-
-  const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (audioRef.current.paused) {
-        audioRef.current.play();
-        setIsPlaying(true);
-      } else {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
-    }
-  };
-
-  const saveProgress = () => {
-    if (mode === 'page') {
-      Cookies.set('quranPage', page.toString(), { expires: 360 });
-    } else if (mode === 'surah' && surahNumber) {
-      Cookies.set('quranSurah', surahNumber.toString(), { expires: 360 });
-    }
-    
-    if (currentVerse !== undefined) {
-      Cookies.set('quranVerse', currentVerse.toString(), { expires: 360 });
-    }
-  };
-
-  const toggleBookmark = (verseId: string) => {
-    const newBookmarks = [...bookmarks];
-    const index = newBookmarks.indexOf(verseId);
-    
-    if (index === -1) {
-      newBookmarks.push(verseId);
-    } else {
-      newBookmarks.splice(index, 1);
-    }
-    
-    setBookmarks(newBookmarks);
-    Cookies.set('quranBookmarks', JSON.stringify(newBookmarks), { expires: 360 });
-  };
-
-  const isBookmarked = (verseId: string) => {
-    return bookmarks.includes(verseId);
-  };
-
+  // Handle changing reciter
   const changeReciter = (reciterId: string) => {
+    // Stop current playback
+    if (isPlaying) {
+      togglePlayPause();
+    }
+    
     setReader(reciterId);
   };
 
-  const nextPage = () => {
-    setPage(prev => Math.min(604, prev + 1));
+  // Handle changing translation
+  const changeTranslation = async (translationId: string) => {
+    setCurrentTranslation(translationId);
   };
 
-  const prevPage = () => {
-    setPage(prev => Math.max(1, prev - 1));
+  // Play a specific verse
+  const playVerse = (verseIndex: number) => {
+    if (verseIndex < 0 || verseIndex >= verses.length) {
+      return;
+    }
+
+    setCurrentVerse(verseIndex);
+    
+    if (audioRef.current && verses[verseIndex]?.audio) {
+      audioRef.current.src = verses[verseIndex].audio || '';
+      audioRef.current.volume = volume;
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        verseRepeatCountRef.current = 0;
+      }).catch(err => {
+        console.error('Error playing audio:', err);
+        setIsPlaying(false);
+      });
+    }
+  };
+
+  // Handle audio ending
+  const handleAudioEnd = () => {
+    // Implement repeat logic
+    if (repeatMode === 'verse') {
+      if (verseRepeatCountRef.current < maxVerseRepeat) {
+        verseRepeatCountRef.current++;
+        audioRef.current?.play().catch(console.error);
+        return;
+      }
+      verseRepeatCountRef.current = 0;
+    }
+    
+    // Play next verse or stop at the end
+    if (currentVerse < verses.length - 1) {
+      playVerse(currentVerse + 1);
+    } else {
+      // End of surah
+      setIsPlaying(false);
+      setCurrentVerse(0);
+    }
+  };
+
+  // Toggle play/pause
+  const togglePlayPause = () => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      playVerse(currentVerse);
+    }
+  };
+
+  // Save reading progress
+  const saveProgress = () => {
+    if (currentVerse !== undefined && surahInfo) {
+      // Save current position to cookies
+      Cookies.set('quranSurah', String(surahInfo.number), { expires: 30 });
+      Cookies.set('quranVerse', String(verses[currentVerse]?.numberInSurah), { expires: 30 });
+      // Show some feedback to user
+      return true;
+    }
+    return false;
+  };
+
+  // Bookmark management
+  const toggleBookmark = (verseKey: string) => {
+    const bookmarks = JSON.parse(localStorage.getItem('quranBookmarks') || '[]');
+    const bookmarkIndex = bookmarks.indexOf(verseKey);
+    
+    if (bookmarkIndex === -1) {
+      bookmarks.push(verseKey);
+    } else {
+      bookmarks.splice(bookmarkIndex, 1);
+    }
+    
+    localStorage.setItem('quranBookmarks', JSON.stringify(bookmarks));
+    return bookmarks.includes(verseKey);
+  };
+
+  const isBookmarked = (verseKey: string) => {
+    const bookmarks = JSON.parse(localStorage.getItem('quranBookmarks') || '[]');
+    return bookmarks.includes(verseKey);
   };
 
   return {
@@ -225,10 +179,12 @@ const QuranReader = ({
     currentVerse,
     isPlaying,
     isLoading,
+    error,
     volume,
     repeatMode,
     reader,
     surahInfo,
+    currentTranslation,
     playVerse,
     togglePlayPause,
     setVolume,
@@ -237,8 +193,7 @@ const QuranReader = ({
     toggleBookmark,
     isBookmarked,
     changeReciter,
-    nextPage,
-    prevPage,
+    changeTranslation,
     audioRef,
     handleAudioEnd
   };

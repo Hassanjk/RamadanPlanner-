@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown } from 'lucide-react';
+import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown, AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import QuranReader from '../components/QuranReader';
+import { getAvailableTranslations, EditionInfo } from '../services/quranService';
 
 interface Reciter {
   id: string;
@@ -9,24 +10,11 @@ interface Reciter {
   arabicName: string;
 }
 
-interface Language {
-  code: string;
-  name: string;
-  nativeName: string;
-}
-
 const reciters: Reciter[] = [
   { id: 'ar.alafasy', name: 'Mishary Rashid Alafasy', arabicName: 'مشاري راشد العفاسي' },
   { id: 'ar.abdulbasitmurattal', name: 'Abdul Basit Abdul Samad', arabicName: 'عبد الباسط عبد الصمد' },
   { id: 'ar.abdurrahmaansudais', name: 'Abdurrahmaan As-Sudais', arabicName: 'عبدالرحمن السديس' },
   { id: 'ar.minshawi', name: 'Mohamed Siddiq El-Minshawi', arabicName: 'محمد صديق المنشاوي' },
-];
-
-const languages: Language[] = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'ur', name: 'Urdu', nativeName: 'اردو' },
-  { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia' },
-  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe' },
 ];
 
 function SurahPage() {
@@ -37,22 +25,28 @@ function SurahPage() {
   const [fontSize, setFontSize] = useState(28);
   const [showTranslation, setShowTranslation] = useState(true);
   const [selectedReciter, setSelectedReciter] = useState(reciters[0]);
-  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  const [selectedLanguage, setSelectedLanguage] = useState<EditionInfo | null>(null);
+  const [availableTranslations, setAvailableTranslations] = useState<EditionInfo[]>([]);
   const [showReciterDropdown, setShowReciterDropdown] = useState(false);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const [translationsLoading, setTranslationsLoading] = useState(false);
+  const [translationsError, setTranslationsError] = useState<string | null>(null);
   
   // Create a ref for each verse to enable scrolling
   const verseRefs = useRef<(HTMLDivElement | null)[]>([]);
   
+  // Initialize QuranReader with default translation
   const {
     verses,
     currentVerse,
     isPlaying,
     isLoading,
+    error: quranError,
     volume,
     repeatMode,
     reader,
     surahInfo,
+    currentTranslation,
     playVerse,
     togglePlayPause,
     setVolume,
@@ -61,13 +55,42 @@ function SurahPage() {
     toggleBookmark,
     isBookmarked,
     changeReciter,
+    changeTranslation,
     audioRef,
     handleAudioEnd
   } = QuranReader({ 
     surahNumber: surahId,
-    mode: 'surah'
+    mode: 'surah',
+    translationEdition: selectedLanguage?.identifier || 'en.asad'
   });
   
+  // Load available translations when component mounts
+  useEffect(() => {
+    const loadTranslations = async () => {
+      setTranslationsLoading(true);
+      try {
+        const translations = await getAvailableTranslations();
+        setAvailableTranslations(translations);
+        
+        // Set default translation (English - Asad)
+        const defaultTranslation = translations.find(t => t.identifier === 'en.asad');
+        if (defaultTranslation) {
+          setSelectedLanguage(defaultTranslation);
+        } else if (translations.length > 0) {
+          // Fallback to first available translation
+          setSelectedLanguage(translations[0]);
+        }
+      } catch (err) {
+        setTranslationsError('Failed to load available translations');
+        console.error('Error loading translations:', err);
+      } finally {
+        setTranslationsLoading(false);
+      }
+    };
+
+    loadTranslations();
+  }, []);
+
   // Reset verse refs array when verses change
   useEffect(() => {
     verseRefs.current = verseRefs.current.slice(0, verses.length);
@@ -79,6 +102,13 @@ function SurahPage() {
       scrollToVerse(currentVerse);
     }
   }, [currentVerse]);
+
+  // Apply translation changes
+  useEffect(() => {
+    if (selectedLanguage) {
+      changeTranslation(selectedLanguage.identifier);
+    }
+  }, [selectedLanguage]);
 
   const scrollToVerse = (index: number) => {
     if (verseRefs.current[index]) {
@@ -106,6 +136,11 @@ function SurahPage() {
     setSelectedReciter(reciter);
     changeReciter(reciter.id);
     setShowReciterDropdown(false);
+  };
+
+  const handleTranslationChange = (translation: EditionInfo) => {
+    setSelectedLanguage(translation);
+    setShowLanguageDropdown(false);
   };
 
   const totalVerses = verses.length;
@@ -219,27 +254,40 @@ function SurahPage() {
                 onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
               >
                 <Globe className="w-5 h-5" />
-                <span className="hidden md:inline">{selectedLanguage.name}</span>
+                <span className="hidden md:inline">
+                  {translationsLoading 
+                    ? 'Loading...' 
+                    : selectedLanguage 
+                      ? selectedLanguage.englishName 
+                      : 'Select translation'}
+                </span>
                 <ChevronDown className="w-4 h-4" />
               </button>
               
               {showLanguageDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-emerald-800/95 backdrop-blur-sm border border-yellow-400/20 rounded-lg shadow-lg z-50">
-                  {languages.map(language => (
-                    <button
-                      key={language.code}
-                      className={`w-full text-left px-4 py-3 hover:bg-emerald-700/30 ${
-                        selectedLanguage.code === language.code ? 'text-yellow-400' : 'text-white hover:text-yellow-400'
-                      } transition-colors`}
-                      onClick={() => {
-                        setSelectedLanguage(language);
-                        setShowLanguageDropdown(false);
-                      }}
-                    >
-                      <div>{language.name}</div>
-                      <div className="text-sm text-gray-400">{language.nativeName}</div>
-                    </button>
-                  ))}
+                <div className="absolute top-full right-0 mt-2 w-64 bg-emerald-800/95 backdrop-blur-sm border border-yellow-400/20 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {translationsLoading ? (
+                    <div className="px-4 py-3 text-white">Loading translations...</div>
+                  ) : translationsError ? (
+                    <div className="px-4 py-3 text-red-400">{translationsError}</div>
+                  ) : (
+                    availableTranslations.map(translation => (
+                      <button
+                        key={translation.identifier}
+                        className={`w-full text-left px-4 py-3 hover:bg-emerald-700/30 ${
+                          selectedLanguage?.identifier === translation.identifier 
+                            ? 'text-yellow-400' 
+                            : 'text-white hover:text-yellow-400'
+                        } transition-colors`}
+                        onClick={() => handleTranslationChange(translation)}
+                      >
+                        <div>{translation.englishName}</div>
+                        <div className="text-sm text-gray-400">
+                          {translation.name} ({translation.language})
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -284,6 +332,18 @@ function SurahPage() {
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+          </div>
+        ) : quranError ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <AlertTriangle className="w-12 h-12 text-yellow-400 mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Error Loading Quran</h3>
+            <p className="text-gray-300 max-w-md">{quranError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-6 bg-yellow-400 text-emerald-900 px-6 py-3 rounded-full hover:bg-yellow-500 transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         ) : (
           <div className="space-y-12">
@@ -341,8 +401,7 @@ function SurahPage() {
                 {/* Translation */}
                 {showTranslation && (
                   <p className="text-white text-lg">
-                    {/* Translation would come from API */}
-                    {`Translation for verse ${verse.numberInSurah} would appear here.`}
+                    {verse.translation || 'Translation not available'}
                   </p>
                 )}
               </div>
