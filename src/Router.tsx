@@ -4,6 +4,7 @@ import Store from './pages/Store';
 import PrayerTimings from './pages/PrayerTimings';
 import RamadanCalendar from './pages/RamadanCalendar';
 import Quran from './pages/Quran';
+import SurahPage from './pages/SurahPage';
 
 function Router() {
   return (
@@ -14,9 +15,10 @@ function Router() {
         <Route path="/prayer-timings" element={<PrayerTimings />} />
         <Route path="/ramadan-calendar" element={<RamadanCalendar />} />
         <Route path="/quran" element={<Quran />} />
+        <Route path="/quran/surah/:id" element={<SurahPage />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-export default Router;
+export default Router

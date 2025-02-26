@@ -36,6 +36,10 @@ function Quran() {
     surah.arabicName.includes(searchQuery)
   );
 
+  const handleSurahClick = (surahNumber: number) => {
+    navigate(`/quran/surah/${surahNumber}`);
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
          style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}>
@@ -68,13 +72,12 @@ function Quran() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="البحث: أدخال رقم او اسم السورة"
+                placeholder="Search by surah name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-emerald-800/30 text-white placeholder-gray-400 px-6 py-4 rounded-full border border-emerald-700/30 focus:border-yellow-400/50 focus:outline-none text-right font-arabic"
-                dir="rtl"
+                className="w-full bg-emerald-800/30 text-white placeholder-gray-400 px-6 py-4 rounded-full border border-emerald-700/30 focus:border-yellow-400/50 focus:outline-none"
               />
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             </div>
           </div>
         </div>
@@ -84,7 +87,8 @@ function Quran() {
           {filteredSurahs.map((surah) => (
             <div 
               key={surah.number}
-              className="bg-emerald-800/30 rounded-2xl p-6 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 transition-all duration-300 group"
+              className="bg-emerald-800/30 rounded-2xl p-6 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 transition-all duration-300 group cursor-pointer"
+              onClick={() => handleSurahClick(surah.number)}
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="w-10 h-10 bg-emerald-800/50 rounded-full flex items-center justify-center text-yellow-400 font-arabic">
