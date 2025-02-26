@@ -16,9 +16,11 @@ function Router() {
         <Route path="/ramadan-calendar" element={<RamadanCalendar />} />
         <Route path="/quran" element={<Quran />} />
         <Route path="/quran/surah/:id" element={<SurahPage />} />
+        <Route path="/quran/page/:id" element={<SurahPage />} />
+        <Route path="/quran/page/:id/:verse" element={<SurahPage />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-export default Router
+export default Router;

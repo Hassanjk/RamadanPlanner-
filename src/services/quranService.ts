@@ -21,6 +21,16 @@ export interface QuranPage {
   ayahs: QuranVerse[];
 }
 
+export interface SurahResponse {
+  number: number;
+  name: string;
+  englishName: string;
+  englishNameTranslation: string;
+  revelationType: string;
+  numberOfAyahs: number;
+  ayahs: QuranVerse[];
+}
+
 export const getPage = async (pageNumber: number, reciter: string = 'ar.alafasy'): Promise<QuranPage> => {
   try {
     const response = await axios.get(`${API_URL}/page/${pageNumber}/${reciter}`);
@@ -34,7 +44,24 @@ export const getPage = async (pageNumber: number, reciter: string = 'ar.alafasy'
 export const getSurah = async (surahNumber: number, reciter: string = 'ar.alafasy'): Promise<QuranVerse[]> => {
   try {
     const response = await axios.get(`${API_URL}/surah/${surahNumber}/${reciter}`);
-    return response.data.data.ayahs;
+    
+    // Make sure to properly map the response, adding surah info to each verse
+    if (response.data && response.data.data && response.data.data.ayahs) {
+      const surahData = response.data.data;
+      
+      // Attach surah info to each verse for easier access later
+      return surahData.ayahs.map((ayah: any) => ({
+        ...ayah,
+        surah: {
+          number: surahData.number,
+          name: surahData.name,
+          englishName: surahData.englishName,
+          revelationType: surahData.revelationType
+        }
+      }));
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error fetching surah:', error);
     throw error;
