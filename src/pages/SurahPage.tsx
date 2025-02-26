@@ -347,6 +347,23 @@ function SurahPage() {
           </div>
         ) : (
           <div className="space-y-12">
+            {/* Bismillah - Show for all surahs except Surah 9 (At-Tawbah) */}
+            {surahInfo && surahInfo.number !== 9 && (
+              <div className="text-center mb-10">
+                <p 
+                  className="font-arabic text-yellow-400 leading-loose"
+                  style={{ fontSize: `${fontSize + 4}px` }}
+                >
+                  بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+                </p>
+                {showTranslation && (
+                  <p className="text-white text-lg mt-3">
+                    In the name of Allah, the Most Gracious, the Most Merciful
+                  </p>
+                )}
+              </div>
+            )}
+            
             {verses.map((verse, index) => (
               <div 
                 key={verse.number}
