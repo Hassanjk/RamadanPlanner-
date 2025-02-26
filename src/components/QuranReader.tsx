@@ -127,8 +127,17 @@ const QuranReader = ({
   const playVerse = async (index: number) => {
     if (!verses || !verses[index]) return;
     
+    // Update current verse index
     setCurrentVerse(index);
+    
     if (audioRef.current) {
+      // If we're already playing the same verse, toggle play/pause
+      if (currentVerse === index && isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+        return;
+      }
+      
       audioRef.current.src = verses[index].audio;
       audioRef.current.volume = volume / 100;
       try {

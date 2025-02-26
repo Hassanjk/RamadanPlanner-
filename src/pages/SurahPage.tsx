@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import QuranReader from '../components/QuranReader';
@@ -40,7 +40,10 @@ function SurahPage() {
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   const [showReciterDropdown, setShowReciterDropdown] = useState(false);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
-
+  
+  // Create a ref for each verse to enable scrolling
+  const verseRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
   const {
     verses,
     currentVerse,
@@ -64,6 +67,28 @@ function SurahPage() {
     surahNumber: surahId,
     mode: 'surah'
   });
+  
+  // Reset verse refs array when verses change
+  useEffect(() => {
+    verseRefs.current = verseRefs.current.slice(0, verses.length);
+  }, [verses]);
+  
+  // Scroll to current verse when it changes
+  useEffect(() => {
+    if (currentVerse !== undefined && verseRefs.current[currentVerse]) {
+      scrollToVerse(currentVerse);
+    }
+  }, [currentVerse]);
+
+  const scrollToVerse = (index: number) => {
+    if (verseRefs.current[index]) {
+      // Scroll with a slight offset from the top
+      verseRefs.current[index]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  };
 
   useEffect(() => {
     // Find the selected reciter in our list
@@ -83,17 +108,12 @@ function SurahPage() {
     setShowReciterDropdown(false);
   };
 
-  const totalVerses = verses?.length || 0;
+  const totalVerses = verses.length;
 
   return (
     <div 
-      className="min-h-screen relative overflow-hidden bg-cover bg-center bg-fixed bg-no-repeat bg-emerald-900/95" 
-      style={{ 
-        backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed"
-      }}
+      className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
+      style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}
     >
       {/* Top Navigation Bar */}
       <nav className="sticky top-0 bg-emerald-900/95 backdrop-blur-md border-b border-yellow-400/20 z-50">
@@ -117,7 +137,7 @@ function SurahPage() {
                     <span>{surahInfo.numberOfAyahs} Verses</span>
                     <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                     <span className="text-yellow-400 font-medium">
-                      {currentVerse !== undefined && verses && verses[currentVerse]?.numberInSurah || 0}/{totalVerses}
+                      {currentVerse !== undefined && verses[currentVerse]?.numberInSurah || 0}/{totalVerses}
                     </span>
                   </div>
                 </>
@@ -267,32 +287,38 @@ function SurahPage() {
           </div>
         ) : (
           <div className="space-y-12">
-            {verses && verses.length > 0 ? verses.map((verse, index) => (
+            {verses.map((verse, index) => (
               <div 
                 key={verse.number}
+                ref={el => verseRefs.current[index] = el}
                 className={`rounded-2xl p-6 transition-all duration-300 ${
                   showTranslation
                     ? 'bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30'
                     : ''
-                } ${currentVerse === index ? 'border-yellow-400/50' : ''}`}
+                } ${currentVerse === index ? 'border-yellow-400 border-2' : ''}`}
               >
                 {/* Verse Number and Controls */}
                 <div className="flex justify-between items-center mb-6">
-                  <div className="w-10 h-10 bg-emerald-800/50 rounded-full flex items-center justify-center text-yellow-400 font-arabic">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-yellow-400 font-arabic
+                    ${currentVerse === index ? 'bg-yellow-400/30' : 'bg-emerald-800/50'}`}>
                     {verse.numberInSurah}
                   </div>
                   <div className="flex gap-2">
                     <button 
-                      className="text-yellow-400 hover:text-yellow-500 transition-colors"
+                      className={`${currentVerse === index && isPlaying ? 'text-yellow-400 bg-yellow-400/20 rounded-full p-1' : 'text-yellow-400 hover:text-yellow-500'} transition-colors`}
                       onClick={() => playVerse(index)}
                     >
-                      <Volume2 className="w-5 h-5" />
+                      {currentVerse === index && isPlaying ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Volume2 className="w-5 h-5" />
+                      )}
                     </button>
                     <button 
                       className={`text-yellow-400 hover:text-yellow-500 transition-colors ${
-                        isBookmarked(`${verse.surah?.number || surahId}:${verse.numberInSurah}`) ? 'text-yellow-500' : ''
+                        isBookmarked(`${verse.surah.number}:${verse.numberInSurah}`) ? 'text-yellow-500' : ''
                       }`}
-                      onClick={() => toggleBookmark(`${verse.surah?.number || surahId}:${verse.numberInSurah}`)}
+                      onClick={() => toggleBookmark(`${verse.surah.number}:${verse.numberInSurah}`)}
                     >
                       <BookmarkPlus className="w-5 h-5" />
                     </button>
@@ -304,7 +330,9 @@ function SurahPage() {
 
                 {/* Arabic Text */}
                 <p 
-                  className="text-right font-arabic leading-loose mb-6 text-white"
+                  className={`text-right font-arabic leading-loose mb-6 ${
+                    currentVerse === index ? 'text-yellow-400' : 'text-white'
+                  }`}
                   style={{ fontSize: `${fontSize}px` }}
                 >
                   {verse.text}
@@ -318,11 +346,7 @@ function SurahPage() {
                   </p>
                 )}
               </div>
-            )) : (
-              <div className="text-center text-white py-10">
-                <p>No verses found. Please try refreshing the page.</p>
-              </div>
-            )}
+            ))}
           </div>
         )}
       </div>
