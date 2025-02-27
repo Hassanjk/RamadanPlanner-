@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown, AlertTriangle, Search } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import QuranReader from '../components/QuranReader';
 import { getAvailableTranslations, EditionInfo } from '../services/quranService';
@@ -31,6 +31,8 @@ function SurahPage() {
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [translationsLoading, setTranslationsLoading] = useState(false);
   const [translationsError, setTranslationsError] = useState<string | null>(null);
+  const [verseToFind, setVerseToFind] = useState<string>('');
+  const [verseError, setVerseError] = useState<string | null>(null);
   
   // Create a ref for each verse to enable scrolling
   const verseRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -143,6 +145,42 @@ function SurahPage() {
     setShowLanguageDropdown(false);
   };
 
+  const handleFindVerse = () => {
+    setVerseError(null);
+    
+    // Validate input
+    const verseNum = parseInt(verseToFind, 10);
+    
+    if (isNaN(verseNum)) {
+      setVerseError('Please enter a valid number');
+      return;
+    }
+    
+    if (!surahInfo) {
+      setVerseError('Surah information not available');
+      return;
+    }
+    
+    if (verseNum < 1 || verseNum > surahInfo.numberOfAyahs) {
+      setVerseError(`Please enter a number between 1 and ${surahInfo.numberOfAyahs}`);
+      return;
+    }
+    
+    // Find the verse index (0-based) from the verse number (1-based)
+    const verseIndex = verses.findIndex(v => v.numberInSurah === verseNum);
+    
+    if (verseIndex === -1) {
+      setVerseError('Verse not found');
+      return;
+    }
+    
+    // Scroll to the verse
+    scrollToVerse(verseIndex);
+    
+    // Optionally play the verse
+    playVerse(verseIndex);
+  };
+
   const totalVerses = verses.length;
 
   // Helper function to check if verse starts with Bismillah
@@ -169,8 +207,13 @@ function SurahPage() {
 
   return (
     <div 
-      className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
-      style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}
+      className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-900/95" 
+      style={{ 
+        backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed"
+      }}
     >
       {/* Top Navigation Bar */}
       <nav className="sticky top-0 bg-emerald-900/95 backdrop-blur-md border-b border-yellow-400/20 z-50">
@@ -193,10 +236,31 @@ function SurahPage() {
                     <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                     <span>{surahInfo.numberOfAyahs} Verses</span>
                     <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                    <span className="text-yellow-400 font-medium">
-                      {currentVerse !== undefined && verses[currentVerse]?.numberInSurah || 0}/{totalVerses}
-                    </span>
+                    <div className="flex items-center gap-1 text-yellow-400 font-medium">
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={verseToFind}
+                          onChange={(e) => setVerseToFind(e.target.value)}
+                          placeholder={`${currentVerse !== undefined && verses[currentVerse]?.numberInSurah || 1}`}
+                          className="w-10 h-6 bg-emerald-800/50 border border-yellow-400/30 rounded text-center text-yellow-400 focus:outline-none focus:border-yellow-400"
+                          aria-label="Find verse"
+                        />
+                        <button 
+                          onClick={handleFindVerse}
+                          className="ml-1 text-yellow-400 hover:text-yellow-500"
+                          aria-label="Go to verse"
+                        >
+                          <Search className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <span>/</span>
+                      <span>{totalVerses}</span>
+                    </div>
                   </div>
+                  {verseError && (
+                    <div className="text-red-400 text-xs mt-1">{verseError}</div>
+                  )}
                 </>
               )}
             </div>
@@ -211,7 +275,7 @@ function SurahPage() {
       </nav>
 
       {/* Controls Bar */}
-      <div className="sticky top-20 bg-emerald-800/50 backdrop-blur-sm border-b border-yellow-400/20 z-40">
+      <div className="sticky top-[73px] bg-emerald-800/50 backdrop-blur-sm border-b border-yellow-400/20 z-40">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Audio Controls with Reciter Selection */}
@@ -349,142 +413,144 @@ function SurahPage() {
         </div>
       </div>
 
-      {/* Verses Content */}
-      <div className="container mx-auto px-4 py-8">
-        {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
-          </div>
-        ) : quranError ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <AlertTriangle className="w-12 h-12 text-yellow-400 mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Error Loading Quran</h3>
-            <p className="text-gray-300 max-w-md">{quranError}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-6 bg-yellow-400 text-emerald-900 px-6 py-3 rounded-full hover:bg-yellow-500 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-12">
-            {/* Bismillah - Show for all surahs except:
-                1. Surah 9 (At-Tawbah) which doesn't have Bismillah
-                2. Surahs where the first verse already includes Bismillah */}
-            {surahInfo && surahInfo.number !== 9 && !firstVerseHasBismillah && (
-              <div className="text-center mb-10">
-                <p 
-                  className="font-arabic text-yellow-400 leading-loose"
-                  style={{ fontSize: `${fontSize + 4}px` }}
-                >
-                  بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-                </p>
-                {showTranslation && (
-                  <p className="text-white text-lg mt-3">
-                    In the name of Allah, the Most Gracious, the Most Merciful
-                  </p>
-                )}
-              </div>
-            )}
-            
-            {/* Concatenated View (when translation is disabled) */}
-            {!showTranslation && (
-              <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
-                <div className="text-right font-arabic leading-loose text-white" style={{ fontSize: `${fontSize}px` }}>
-                  {verses.map((verse, index) => {
-                    // Process verse text - remove Bismillah from first verse if needed
-                    const verseText = index === 0 && firstVerseHasBismillah 
-                      ? extractBismillah(verse.text) 
-                      : verse.text;
-                    
-                    return (
-                      <span 
-                        key={verse.number}
-                        ref={el => verseRefs.current[index] = el}
-                        className={`relative inline ${currentVerse === index ? 'text-yellow-400' : ''}`}
-                        onClick={() => playVerse(index)}
-                      >
-                        {verseText}
-                        <span className="inline-block mx-1 text-yellow-400 select-none">
-                          ﴾{toArabicNumbers(verse.numberInSurah)}﴿
-                        </span>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            
-            {/* Individual Verses View (when translation is enabled) */}
-            {showTranslation && verses.map((verse, index) => {
-              // Special handling for first verse that contains Bismillah (like in Al-Fatihah)
-              const verseContainsBismillah = index === 0 && startsWithBismillah(verse.text);
-              // Process verse text for display if it contains Bismillah
-              const displayText = verseContainsBismillah ? extractBismillah(verse.text) : verse.text;
-              
-              return (
-                <div 
-                  key={verse.number}
-                  ref={el => verseRefs.current[index] = el}
-                  className={`rounded-2xl p-6 transition-all duration-300 bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 ${
-                    currentVerse === index ? 'border-yellow-400 border-2' : ''
-                  } ${verseContainsBismillah ? 'text-center' : ''}`}
-                >
-                  {/* Verse Number and Controls */}
-                  <div className="flex justify-between items-center mb-6">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-yellow-400 font-arabic
-                      ${currentVerse === index ? 'bg-yellow-400/30' : 'bg-emerald-800/50'}`}>
-                      {verse.numberInSurah}
-                    </div>
-                    <div className="flex gap-2">
-                      <button 
-                        className={`${currentVerse === index && isPlaying ? 'text-yellow-400 bg-yellow-400/20 rounded-full p-1' : 'text-yellow-400 hover:text-yellow-500'} transition-colors`}
-                        onClick={() => playVerse(index)}
-                      >
-                        {currentVerse === index && isPlaying ? (
-                          <Pause className="w-5 h-5" />
-                        ) : (
-                          <Volume2 className="w-5 h-5" />
-                        )}
-                      </button>
-                      <button 
-                        className={`text-yellow-400 hover:text-yellow-500 transition-colors ${
-                          isBookmarked(`${verse.surah.number}:${verse.numberInSurah}`) ? 'text-yellow-500' : ''
-                        }`}
-                        onClick={() => toggleBookmark(`${verse.surah.number}:${verse.numberInSurah}`)}
-                      >
-                        <BookmarkPlus className="w-5 h-5" />
-                      </button>
-                      <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
-                        <Share2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Arabic Text */}
+      {/* Verses Content - Scrollable Area */}
+      <div className="flex-grow overflow-y-auto" style={{ height: "calc(100vh - 73px - 62px - 67px)" }}>
+        <div className="container mx-auto px-4 py-8">
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+            </div>
+          ) : quranError ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <AlertTriangle className="w-12 h-12 text-yellow-400 mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">Error Loading Quran</h3>
+              <p className="text-gray-300 max-w-md">{quranError}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-6 bg-yellow-400 text-emerald-900 px-6 py-3 rounded-full hover:bg-yellow-500 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-12 pb-20">
+              {/* Bismillah - Show for all surahs except:
+                  1. Surah 9 (At-Tawbah) which doesn't have Bismillah
+                  2. Surahs where the first verse already includes Bismillah */}
+              {surahInfo && surahInfo.number !== 9 && !firstVerseHasBismillah && (
+                <div className="text-center mb-10">
                   <p 
-                    className={`${verseContainsBismillah ? 'text-center' : 'text-right'} font-arabic leading-loose mb-6 ${
-                      currentVerse === index ? 'text-yellow-400' : 'text-white'
-                    }`}
-                    style={{ fontSize: `${fontSize}px` }}
+                    className="font-arabic text-yellow-400 leading-loose"
+                    style={{ fontSize: `${fontSize + 4}px` }}
                   >
-                    {displayText}
+                    بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                   </p>
-
-                  {/* Translation */}
-                  <p className={`text-white text-lg ${verseContainsBismillah ? 'text-center' : ''}`}>
-                    {verse.translation || 'Translation not available'}
-                  </p>
+                  {showTranslation && (
+                    <p className="text-white text-lg mt-3">
+                      In the name of Allah, the Most Gracious, the Most Merciful
+                    </p>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+              
+              {/* Concatenated View (when translation is disabled) */}
+              {!showTranslation && (
+                <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
+                  <div className="text-right font-arabic leading-loose text-white" style={{ fontSize: `${fontSize}px` }}>
+                    {verses.map((verse, index) => {
+                      // Process verse text - remove Bismillah from first verse if needed
+                      const verseText = index === 0 && firstVerseHasBismillah 
+                        ? extractBismillah(verse.text) 
+                        : verse.text;
+                      
+                      return (
+                        <span 
+                          key={verse.number}
+                          ref={el => verseRefs.current[index] = el}
+                          className={`relative inline ${currentVerse === index ? 'text-yellow-400' : ''}`}
+                          onClick={() => playVerse(index)}
+                        >
+                          {verseText}
+                          <span className="inline-block mx-1 text-yellow-400 select-none">
+                            ﴾{toArabicNumbers(verse.numberInSurah)}﴿
+                          </span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Individual Verses View (when translation is enabled) */}
+              {showTranslation && verses.map((verse, index) => {
+                // Special handling for first verse that contains Bismillah (like in Al-Fatihah)
+                const verseContainsBismillah = index === 0 && startsWithBismillah(verse.text);
+                // Process verse text for display if it contains Bismillah
+                const displayText = verseContainsBismillah ? extractBismillah(verse.text) : verse.text;
+                
+                return (
+                  <div 
+                    key={verse.number}
+                    ref={el => verseRefs.current[index] = el}
+                    className={`rounded-2xl p-6 transition-all duration-300 bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 ${
+                      currentVerse === index ? 'border-yellow-400 border-2' : ''
+                    } ${verseContainsBismillah ? 'text-center' : ''}`}
+                  >
+                    {/* Verse Number and Controls */}
+                    <div className="flex justify-between items-center mb-6">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-yellow-400 font-arabic
+                        ${currentVerse === index ? 'bg-yellow-400/30' : 'bg-emerald-800/50'}`}>
+                        {verse.numberInSurah}
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          className={`${currentVerse === index && isPlaying ? 'text-yellow-400 bg-yellow-400/20 rounded-full p-1' : 'text-yellow-400 hover:text-yellow-500'} transition-colors`}
+                          onClick={() => playVerse(index)}
+                        >
+                          {currentVerse === index && isPlaying ? (
+                            <Pause className="w-5 h-5" />
+                          ) : (
+                            <Volume2 className="w-5 h-5" />
+                          )}
+                        </button>
+                        <button 
+                          className={`text-yellow-400 hover:text-yellow-500 transition-colors ${
+                            isBookmarked(`${verse.surah.number}:${verse.numberInSurah}`) ? 'text-yellow-500' : ''
+                          }`}
+                          onClick={() => toggleBookmark(`${verse.surah.number}:${verse.numberInSurah}`)}
+                        >
+                          <BookmarkPlus className="w-5 h-5" />
+                        </button>
+                        <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
+                          <Share2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Arabic Text */}
+                    <p 
+                      className={`${verseContainsBismillah ? 'text-center' : 'text-right'} font-arabic leading-loose mb-6 ${
+                        currentVerse === index ? 'text-yellow-400' : 'text-white'
+                      }`}
+                      style={{ fontSize: `${fontSize}px` }}
+                    >
+                      {displayText}
+                    </p>
+
+                    {/* Translation */}
+                    <p className={`text-white text-lg ${verseContainsBismillah ? 'text-center' : ''}`}>
+                      {verse.translation || 'Translation not available'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-emerald-900/95 backdrop-blur-md border-t border-yellow-400/20">
+      <div className="sticky bottom-0 bg-emerald-900/95 backdrop-blur-md border-t border-yellow-400/20 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <button 
