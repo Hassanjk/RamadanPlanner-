@@ -67,7 +67,12 @@ function App() {
               >
                 Quran
               </button>
-              <a href="#" className="text-white">Recipe</a>
+              <button 
+                onClick={() => handleNavigation('/recipes')}
+                className="text-white hover:text-yellow-400 transition-colors"
+              >
+                Recipe
+              </button>
               <button 
                 onClick={() => handleNavigation('/store')}
                 className="text-white hover:text-yellow-400 transition-colors"
@@ -115,7 +120,12 @@ function App() {
                 >
                   Quran
                 </button>
-                <a href="#" className="text-white">Recipe</a>
+                <button 
+                  onClick={() => handleNavigation('/recipes')}
+                  className="text-white hover:text-yellow-400 transition-colors text-left"
+                >
+                  Recipe
+                </button>
                 <button 
                   onClick={() => handleNavigation('/store')}
                   className="text-white hover:text-yellow-400 transition-colors text-left"

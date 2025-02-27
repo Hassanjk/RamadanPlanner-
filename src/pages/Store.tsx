@@ -63,8 +63,8 @@ function Store() {
             <div className="relative flex justify-center">
               <div className="w-[380px] aspect-[4/5] bg-white rounded-lg shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1597505495109-7fc35bb64d8e?w=800&auto=format&fit=crop&q=90" 
-                  alt="Ramadan Guide Book Cover" 
+                  src="http://reflectiveramadan.com/wp-content/themes/youTube/assets/img/Ramadan_planner_24.png"
+                  alt="Ramadan Planner 2024"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/50 to-transparent"></div>
@@ -112,8 +112,8 @@ function Store() {
 
               <div className="space-y-3">
                 <div className="flex items-baseline gap-4">
-                  <span className="text-3xl lg:text-4xl font-bold text-yellow-400">$24.99</span>
-                  <span className="text-lg lg:text-xl line-through text-gray-400">$39.99</span>
+                  <span className="text-3xl lg:text-4xl font-bold text-yellow-400">$4.99</span>
+                  <span className="text-lg lg:text-xl line-through text-gray-400">$10.99</span>
                   <span className="bg-yellow-400 text-emerald-900 px-3 py-1 rounded-full text-sm font-semibold">
                     37% OFF
                   </span>
