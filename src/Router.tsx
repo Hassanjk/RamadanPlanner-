@@ -6,6 +6,7 @@ import RamadanCalendar from './pages/RamadanCalendar';
 import Quran from './pages/Quran';
 import SurahPage from './pages/SurahPage';
 import Recipes from './pages/Recipes';
+import RecipeDetail from './pages/RecipeDetail';
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
         <Route path="/ramadan-calendar" element={<RamadanCalendar />} />
         <Route path="/quran" element={<Quran />} />
         <Route path="/recipes" element={<Recipes />} />
+        <Route path="/recipe/:id" element={<RecipeDetail />} />
         <Route path="/quran/surah/:id" element={<SurahPage />} />
         <Route path="/quran/page/:id" element={<SurahPage />} />
         <Route path="/quran/page/:id/:verse" element={<SurahPage />} />

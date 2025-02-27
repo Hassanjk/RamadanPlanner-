@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, ArrowLeft, Search, Clock, Users, ChevronLeft, ChevronRight, Heart, Utensils, Coffee, ArrowRight } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Moon, ArrowLeft, Search, Clock, Users, Heart, Utensils, Coffee, ArrowRight, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTransition } from '../contexts/TransitionContext';
 import gsap from 'gsap';
-import { searchRecipes, getFeaturedRecipes } from '../services/recipeService';
+import { searchRecipes } from '../services/recipeService';
+import { containsNonHalalTerms, getNonHalalWarning } from '../utils/halalFilter';
 
 interface Recipe {
   id: number;
@@ -16,70 +17,29 @@ interface Recipe {
   calories: number;
 }
 
-interface FeaturedRecipe {
-  id: number;
-  title: string;
-  description: string;
-  image: string;
-  type: 'suhoor' | 'iftar';
-}
-
 function Recipes() {
   const navigate = useNavigate();
   const { setIsTransitioning } = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'suhoor' | 'iftar'>('all');
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [featuredRecipes, setFeaturedRecipes] = useState<FeaturedRecipe[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-
-  // Fetch featured recipes on component mount
-  useEffect(() => {
-    const loadFeaturedRecipes = async () => {
-      setLoading(true);
-      try {
-        const featured = await getFeaturedRecipes();
-        setFeaturedRecipes(featured);
-      } catch (error) {
-        console.error("Failed to load featured recipes:", error);
-        // Fallback to sample data if API fails
-        setFeaturedRecipes([
-          {
-            id: 1,
-            title: "Energizing Overnight Oats",
-            description: "Start your Suhoor with this nutritious and filling breakfast",
-            image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=60",
-            type: "suhoor"
-          },
-          {
-            id: 2,
-            title: "Traditional Iftar Platter",
-            description: "Break your fast with dates, fruits and refreshing drinks",
-            image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&auto=format&fit=crop&q=60",
-            type: "iftar"
-          },
-          {
-            id: 3,
-            title: "Healthy Protein Smoothie Bowl",
-            description: "Perfect pre-dawn meal to keep you energized",
-            image: "https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=800&auto=format&fit=crop&q=60",
-            type: "suhoor"
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFeaturedRecipes();
-  }, []);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
   // Fetch recipes based on search and filters
   useEffect(() => {
     const fetchRecipes = async () => {
       setLoading(true);
+      setWarning(null);
+      
       try {
+        // Check if query contains non-halal terms
+        if (containsNonHalalTerms(searchQuery)) {
+          const warningMessage = getNonHalalWarning(searchQuery);
+          setWarning(warningMessage);
+        }
+        
         const mealType = activeTab !== 'all' ? activeTab : undefined;
         const results = await searchRecipes(searchQuery, mealType);
         setRecipes(results);
@@ -138,16 +98,14 @@ function Recipes() {
       fetchRecipes();
     }, 500);
 
+    // Load favorites from localStorage
+    const storedFavorites = localStorage.getItem('favoriteRecipes');
+    if (storedFavorites) {
+      setFavorites(JSON.parse(storedFavorites));
+    }
+
     return () => clearTimeout(timeoutId);
   }, [searchQuery, activeTab]);
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % featuredRecipes.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + featuredRecipes.length) % featuredRecipes.length);
-  };
 
   const handleBack = () => {
     setIsTransitioning(true);
@@ -174,6 +132,20 @@ function Recipes() {
       });
   };
 
+  const toggleFavorite = (e: React.MouseEvent, recipeId: number) => {
+    e.stopPropagation(); // Prevent navigating when clicking the heart
+    
+    let newFavorites: number[];
+    if (favorites.includes(recipeId)) {
+      newFavorites = favorites.filter(id => id !== recipeId);
+    } else {
+      newFavorites = [...favorites, recipeId];
+    }
+    
+    setFavorites(newFavorites);
+    localStorage.setItem('favoriteRecipes', JSON.stringify(newFavorites));
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95"
          style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}>
@@ -197,56 +169,15 @@ function Recipes() {
       </nav>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Featured Recipe Slider */}
-        <div className="relative mb-12 rounded-2xl overflow-hidden h-[400px] bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30">
-          {loading && featuredRecipes.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
-            </div>
-          ) : (
-            <div className="h-full relative">
-              <div 
-                className="absolute inset-0 flex transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-              >
-                {featuredRecipes.map((recipe) => (
-                  <div key={recipe.id} className="w-full flex-shrink-0 relative">
-                    <img 
-                      src={recipe.image} 
-                      alt={recipe.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/90 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-8">
-                      <div className="inline-flex items-center gap-2 bg-yellow-400/90 px-4 py-1 rounded-full text-emerald-900 text-sm font-semibold mb-4">
-                        {recipe.type === 'suhoor' ? (
-                          <Coffee className="w-4 h-4" />
-                        ) : (
-                          <Utensils className="w-4 h-4" />
-                        )}
-                        <span className="capitalize">{recipe.type}</span>
-                      </div>
-                      <h2 className="text-4xl font-bold text-white mb-2">{recipe.title}</h2>
-                      <p className="text-lg text-yellow-400">{recipe.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <button 
-            onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-yellow-400/90 p-2 rounded-full text-emerald-900 hover:bg-yellow-500 transition-colors z-10"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <button 
-            onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-yellow-400/90 p-2 rounded-full text-emerald-900 hover:bg-yellow-500 transition-colors z-10"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+        {/* Welcoming Header - Replacing the slider */}
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            What are you preparing today?
+          </h1>
+          <p className="text-xl text-yellow-400 max-w-3xl mx-auto">
+            Discover delicious and nutritious halal recipes for your Ramadan meals. 
+            From energizing suhoor to satisfying iftar dishes.
+          </p>
         </div>
 
         {/* Search and Filters */}
@@ -255,7 +186,7 @@ function Recipes() {
             <div className="relative flex-1 w-full">
               <input
                 type="text"
-                placeholder="Search recipes..."
+                placeholder="Search halal recipes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-emerald-800/50 text-white placeholder-gray-400 px-6 py-4 rounded-full border border-emerald-700/50 focus:border-yellow-400/50 focus:outline-none"
@@ -279,6 +210,14 @@ function Recipes() {
               ))}
             </div>
           </div>
+          
+          {/* Warning message for non-halal terms */}
+          {warning && (
+            <div className="mt-4 p-3 bg-yellow-400/20 border border-yellow-400/30 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <p className="text-white text-sm">{warning}</p>
+            </div>
+          )}
         </div>
 
         {/* Recipe Grid */}
@@ -288,7 +227,7 @@ function Recipes() {
           </div>
         ) : recipes.length === 0 ? (
           <div className="text-center p-8 bg-emerald-800/30 rounded-2xl backdrop-blur-sm">
-            <p className="text-xl text-white">No recipes found. Try adjusting your search.</p>
+            <p className="text-xl text-white">No halal recipes found. Try adjusting your search.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -306,13 +245,14 @@ function Recipes() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <button 
-                    className="absolute top-4 right-4 w-10 h-10 bg-emerald-900/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:text-yellow-400 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent navigating when clicking the heart
-                      // Add favorite logic here
-                    }}
+                    className={`absolute top-4 right-4 w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors ${
+                      favorites.includes(recipe.id)
+                        ? 'bg-yellow-400 text-emerald-900'
+                        : 'bg-emerald-900/50 text-white hover:text-yellow-400'
+                    }`}
+                    onClick={(e) => toggleFavorite(e, recipe.id)}
                   >
-                    <Heart className="w-5 h-5" />
+                    <Heart className="w-5 h-5" fill={favorites.includes(recipe.id) ? 'currentColor' : 'none'} />
                   </button>
                   <div className="absolute bottom-4 left-4">
                     <div className="inline-flex items-center gap-2 bg-yellow-400/90 px-4 py-1 rounded-full text-emerald-900 text-sm font-semibold">

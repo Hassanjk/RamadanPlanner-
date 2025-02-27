@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Recipe, FeaturedRecipe } from '../types/recipe';
+import { containsNonHalalTerms, getNonHalalWarning } from '../utils/halalFilter';
 
 const RAPID_API_KEY = import.meta.env.VITE_RAPID_API_KEY;
 const RAPID_API_HOST = import.meta.env.VITE_RAPID_API_HOST;
@@ -30,6 +31,12 @@ interface RecipeDetails {
 
 export const searchRecipes = async (query: string, mealType?: string, limit = 9): Promise<Recipe[]> => {
   try {
+    // Check if query contains non-halal terms - simple prevention approach
+    if (containsNonHalalTerms(query)) {
+      const warning = getNonHalalWarning(query);
+      throw new Error(warning || 'Your search contains non-halal terms which are not permitted.');
+    }
+
     let tags = '';
     if (mealType === 'suhoor') {
       tags = 'breakfast';
@@ -45,7 +52,9 @@ export const searchRecipes = async (query: string, mealType?: string, limit = 9)
         number: limit,
         tags,
         addRecipeNutrition: 'true',
-        fillIngredients: 'true'
+        fillIngredients: 'true',
+        // Add exclusion parameter for common non-halal ingredients
+        excludeIngredients: 'pork,bacon,ham,alcohol,wine,beer',
       },
       headers: {
         'X-RapidAPI-Key': RAPID_API_KEY,
