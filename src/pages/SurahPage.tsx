@@ -153,6 +153,20 @@ function SurahPage() {
   // Check if the first verse already contains Bismillah
   const firstVerseHasBismillah = verses.length > 0 && startsWithBismillah(verses[0]?.text || '');
 
+  // Convert numbers to Arabic numerals
+  const toArabicNumbers = (num: number): string => {
+    const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return num.toString().split('').map(digit => arabicNumbers[parseInt(digit)]).join('');
+  };
+
+  // Extract Bismillah from first verse if it exists
+  const extractBismillah = (verseText: string): string => {
+    if (startsWithBismillah(verseText)) {
+      return verseText.replace(/^(بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ)(.*)$/, '$2');
+    }
+    return verseText;
+  };
+
   return (
     <div 
       className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
@@ -374,20 +388,48 @@ function SurahPage() {
               </div>
             )}
             
-            {verses.map((verse, index) => {
+            {/* Concatenated View (when translation is disabled) */}
+            {!showTranslation && (
+              <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-2xl p-6">
+                <div className="text-right font-arabic leading-loose text-white" style={{ fontSize: `${fontSize}px` }}>
+                  {verses.map((verse, index) => {
+                    // Process verse text - remove Bismillah from first verse if needed
+                    const verseText = index === 0 && firstVerseHasBismillah 
+                      ? extractBismillah(verse.text) 
+                      : verse.text;
+                    
+                    return (
+                      <span 
+                        key={verse.number}
+                        ref={el => verseRefs.current[index] = el}
+                        className={`relative inline ${currentVerse === index ? 'text-yellow-400' : ''}`}
+                        onClick={() => playVerse(index)}
+                      >
+                        {verseText}
+                        <span className="inline-block mx-1 text-yellow-400 select-none">
+                          ﴾{toArabicNumbers(verse.numberInSurah)}﴿
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* Individual Verses View (when translation is enabled) */}
+            {showTranslation && verses.map((verse, index) => {
               // Special handling for first verse that contains Bismillah (like in Al-Fatihah)
               const verseContainsBismillah = index === 0 && startsWithBismillah(verse.text);
+              // Process verse text for display if it contains Bismillah
+              const displayText = verseContainsBismillah ? extractBismillah(verse.text) : verse.text;
               
               return (
                 <div 
                   key={verse.number}
                   ref={el => verseRefs.current[index] = el}
-                  className={`rounded-2xl p-6 transition-all duration-300 ${
-                    showTranslation
-                      ? 'bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30'
-                      : ''
-                  } ${currentVerse === index ? 'border-yellow-400 border-2' : ''}
-                    ${verseContainsBismillah ? 'text-center' : ''}`}
+                  className={`rounded-2xl p-6 transition-all duration-300 bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 ${
+                    currentVerse === index ? 'border-yellow-400 border-2' : ''
+                  } ${verseContainsBismillah ? 'text-center' : ''}`}
                 >
                   {/* Verse Number and Controls */}
                   <div className="flex justify-between items-center mb-6">
@@ -427,15 +469,13 @@ function SurahPage() {
                     }`}
                     style={{ fontSize: `${fontSize}px` }}
                   >
-                    {verse.text}
+                    {displayText}
                   </p>
 
                   {/* Translation */}
-                  {showTranslation && (
-                    <p className={`text-white text-lg ${verseContainsBismillah ? 'text-center' : ''}`}>
-                      {verse.translation || 'Translation not available'}
-                    </p>
-                  )}
+                  <p className={`text-white text-lg ${verseContainsBismillah ? 'text-center' : ''}`}>
+                    {verse.translation || 'Translation not available'}
+                  </p>
                 </div>
               );
             })}
