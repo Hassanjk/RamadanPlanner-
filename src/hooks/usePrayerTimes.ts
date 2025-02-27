@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   getPrayerTimesByCoordinates, 
   getPrayerTimesByCity, 
@@ -70,6 +70,9 @@ export const usePrayerTimes = ({
     refresh: async () => {}
   });
 
+  // Use ref to hold prayerTimes so the interval always has access to latest data
+  const prayerTimesRef = useRef<PrayerTimes | null>(null);
+
   const fetchPrayerTimes = async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -86,6 +89,8 @@ export const usePrayerTimes = ({
         throw new Error('Insufficient location data provided');
       }
 
+      // Store the prayer times in the ref for the interval to use
+      prayerTimesRef.current = response.timings;
       const nextPrayer = getNextPrayer(response.timings);
 
       setState({
@@ -121,13 +126,17 @@ export const usePrayerTimes = ({
     }
   };
 
+  // Separate effect for fetching prayer times
   useEffect(() => {
     fetchPrayerTimes();
-    
+  }, [latitude, longitude, city, country, address, date, method, adjustments]);
+  
+  // Separate effect for setting up the countdown timer
+  useEffect(() => {
     // Set up interval to update the "time remaining" every second
     const intervalId = setInterval(() => {
-      if (state.prayerTimes) {
-        const updatedNextPrayer = getNextPrayer(state.prayerTimes);
+      if (prayerTimesRef.current) {
+        const updatedNextPrayer = getNextPrayer(prayerTimesRef.current);
         setState(prev => ({
           ...prev,
           nextPrayer: updatedNextPrayer
@@ -135,8 +144,11 @@ export const usePrayerTimes = ({
       }
     }, 1000);
 
-    return () => clearInterval(intervalId);
-  }, [latitude, longitude, city, country, address, date, method, adjustments]);
+    // Clean up the interval when component unmounts or dependencies change
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
 
   return state;
 };
