@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown, AlertTriangle, Search } from 'lucide-react';
+import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown, AlertTriangle, Search, ChevronLeft, ChevronRight, Book, Download } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import QuranReader from '../components/QuranReader';
 import { getAvailableTranslations, EditionInfo } from '../services/quranService';
+import { shareQuranVerseViaWhatsApp } from '../utils/shareUtils';
+import { getAvailableReciters, ReciterInfo } from '../utils/quranUtils';
+import SurahDownloadModal from '../components/SurahDownloadModal';
 
 interface Reciter {
   id: string;
@@ -66,6 +69,14 @@ function SurahPage() {
     translationEdition: selectedLanguage?.identifier || 'en.asad'
   });
   
+  // Add a state for share feedback
+  const [shareStatus, setShareStatus] = useState<{verseId: number, status: string} | null>(null);
+
+  // Add new states for download functionality
+  const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
+  const [availableReciters, setAvailableReciters] = useState<ReciterInfo[]>([]);
+  const [recitersLoading, setRecitersLoading] = useState<boolean>(false);
+
   // Load available translations when component mounts
   useEffect(() => {
     const loadTranslations = async () => {
@@ -91,6 +102,23 @@ function SurahPage() {
     };
 
     loadTranslations();
+  }, []);
+
+  // Load available reciters for download
+  useEffect(() => {
+    const loadReciters = async () => {
+      setRecitersLoading(true);
+      try {
+        const reciters = await getAvailableReciters();
+        setAvailableReciters(reciters);
+      } catch (error) {
+        console.error('Error loading reciters:', error);
+      } finally {
+        setRecitersLoading(false);
+      }
+    };
+    
+    loadReciters();
   }, []);
 
   // Reset verse refs array when verses change
@@ -181,6 +209,37 @@ function SurahPage() {
     playVerse(verseIndex);
   };
 
+  // Handle sharing a verse via WhatsApp
+  const handleShareVerse = (verse: any, index: number) => {
+    if (!surahInfo) return;
+    
+    const success = shareQuranVerseViaWhatsApp(
+      surahInfo.name,
+      surahInfo.englishName,
+      verse.numberInSurah,
+      verse.text,
+      verse.translation || 'Translation not available'
+    );
+    
+    if (success) {
+      setShareStatus({ verseId: index, status: 'shared' });
+      // Clear the status after a delay
+      setTimeout(() => {
+        setShareStatus(null);
+      }, 2000);
+    } else {
+      setShareStatus({ verseId: index, status: 'failed' });
+      // Clear the error status after a delay
+      setTimeout(() => {
+        setShareStatus(null);
+      }, 2000);
+    }
+  };
+
+  const handleDownloadClick = () => {
+    setShowDownloadModal(true);
+  };
+
   const totalVerses = verses.length;
 
   // Helper function to check if verse starts with Bismillah
@@ -217,8 +276,9 @@ function SurahPage() {
     >
       {/* Top Navigation Bar */}
       <nav className="sticky top-0 bg-emerald-900/95 backdrop-blur-md border-b border-yellow-400/20 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3">
+          {/* Back button and app logo */}
+          <div className="flex items-center justify-between mb-2">
             <button 
               onClick={() => navigate('/quran')} 
               className="text-yellow-400 flex items-center gap-2 hover:text-yellow-500 transition-colors"
@@ -227,55 +287,76 @@ function SurahPage() {
               <span className="text-lg">Back</span>
             </button>
             
-            <div className="text-center space-y-1">
-              {surahInfo && (
-                <>
-                  <h1 className="text-xl font-bold text-yellow-400">{surahInfo.englishName}</h1>
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-300">
-                    <span>{surahInfo.name}</span>
-                    <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                    <span>{surahInfo.numberOfAyahs} Verses</span>
-                    <span className="w-1 h-1 rounded-full bg-gray-300"></span>
-                    <div className="flex items-center gap-1 text-yellow-400 font-medium">
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          value={verseToFind}
-                          onChange={(e) => setVerseToFind(e.target.value)}
-                          placeholder={`${currentVerse !== undefined && verses[currentVerse]?.numberInSurah || 1}`}
-                          className="w-10 h-6 bg-emerald-800/50 border border-yellow-400/30 rounded text-center text-yellow-400 focus:outline-none focus:border-yellow-400"
-                          aria-label="Find verse"
-                        />
-                        <button 
-                          onClick={handleFindVerse}
-                          className="ml-1 text-yellow-400 hover:text-yellow-500"
-                          aria-label="Go to verse"
-                        >
-                          <Search className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <span>/</span>
-                      <span>{totalVerses}</span>
-                    </div>
-                  </div>
-                  {verseError && (
-                    <div className="text-red-400 text-xs mt-1">{verseError}</div>
-                  )}
-                </>
-              )}
-            </div>
-
             <div className="w-12 h-12">
               <div className="w-full h-full rounded-full bg-yellow-400/90 flex items-center justify-center">
                 <Moon className="text-emerald-900 w-8 h-8" />
               </div>
             </div>
           </div>
+          
+          {/* Surah information with navigation arrows repositioned */}
+          {surahInfo && (
+            <>
+              <h1 className="text-xl font-bold text-yellow-400 text-center">{surahInfo.englishName}</h1>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-gray-300 mt-1">
+                <span className="text-white font-arabic text-lg">{surahInfo.name}</span>
+                <span className="hidden sm:block w-1 h-1 rounded-full bg-gray-300"></span>
+                <span>{surahInfo.numberOfAyahs} Verses</span>
+              </div>
+              
+              {/* Row with verse filter and navigation arrows */}
+              <div className="flex items-center justify-between mt-3">
+                <button 
+                  className="text-yellow-400 hover:text-yellow-500 transition-colors p-2"
+                  onClick={() => navigate(`/quran/surah/${Math.max(1, surahId - 1)}`)}
+                  disabled={surahId <= 1}
+                  aria-label="Previous Surah"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <div className="flex items-center gap-1 text-yellow-400 font-medium">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={verseToFind}
+                      onChange={(e) => setVerseToFind(e.target.value)}
+                      placeholder={`${currentVerse !== undefined && verses[currentVerse]?.numberInSurah || 1}`}
+                      className="w-10 h-6 bg-emerald-800/50 border border-yellow-400/30 rounded text-center text-yellow-400 focus:outline-none focus:border-yellow-400"
+                      aria-label="Find verse"
+                    />
+                    <button 
+                      onClick={handleFindVerse}
+                      className="ml-1 text-yellow-400 hover:text-yellow-500"
+                      aria-label="Go to verse"
+                    >
+                      <Search className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <span>/</span>
+                  <span>{totalVerses}</span>
+                </div>
+                
+                <button 
+                  className="text-yellow-400 hover:text-yellow-500 transition-colors p-2"
+                  onClick={() => navigate(`/quran/surah/${Math.min(114, surahId + 1)}`)}
+                  disabled={surahId >= 114}
+                  aria-label="Next Surah"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {verseError && (
+                <div className="text-red-400 text-xs mt-1 text-center">{verseError}</div>
+              )}
+            </>
+          )}
         </div>
       </nav>
 
       {/* Controls Bar */}
-      <div className="sticky top-[73px] bg-emerald-800/50 backdrop-blur-sm border-b border-yellow-400/20 z-40">
+      <div className="sticky top-[109px] bg-emerald-800/50 backdrop-blur-sm border-b border-yellow-400/20 z-40">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Audio Controls with Reciter Selection */}
@@ -405,8 +486,24 @@ function SurahPage() {
               <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
-                <Settings2 className="w-5 h-5" />
+              <button 
+                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${
+                  showTranslation ? 'bg-yellow-400 text-emerald-900' : 'text-yellow-400 border border-yellow-400'
+                }`}
+                onClick={() => setShowTranslation(!showTranslation)}
+              >
+                <Book className="w-4 h-4" />
+                <span className="text-sm">Translation</span>
+              </button>
+              <button 
+                className="flex items-center gap-1 px-3 py-1 rounded-full transition-colors text-yellow-400 border border-yellow-400 hover:bg-yellow-400 hover:text-emerald-900"
+                onClick={handleDownloadClick}
+                disabled={recitersLoading}
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-sm">
+                  {recitersLoading ? 'Loading...' : 'Download'}
+                </span>
               </button>
             </div>
           </div>
@@ -414,7 +511,7 @@ function SurahPage() {
       </div>
 
       {/* Verses Content - Scrollable Area */}
-      <div className="flex-grow overflow-y-auto" style={{ height: "calc(100vh - 73px - 62px - 67px)" }}>
+      <div className="flex-grow overflow-y-auto" style={{ height: "calc(100vh - 109px - 62px)" }}>
         <div className="container mx-auto px-4 py-8">
           {isLoading ? (
             <div className="flex justify-center items-center py-20">
@@ -521,8 +618,19 @@ function SurahPage() {
                         >
                           <BookmarkPlus className="w-5 h-5" />
                         </button>
-                        <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
+                        <button 
+                          className={`text-yellow-400 hover:text-yellow-500 transition-colors relative ${
+                            shareStatus?.verseId === index ? 'bg-yellow-400/20 rounded-full p-1' : ''
+                          }`}
+                          onClick={() => handleShareVerse(verse, index)}
+                          title="Share via WhatsApp"
+                        >
                           <Share2 className="w-5 h-5" />
+                          {shareStatus?.verseId === index && (
+                            <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-emerald-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                              {shareStatus.status === 'shared' ? 'Opening WhatsApp...' : 'Failed to share'}
+                            </span>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -549,33 +657,16 @@ function SurahPage() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="sticky bottom-0 bg-emerald-900/95 backdrop-blur-md border-t border-yellow-400/20 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <button 
-              className="text-yellow-400 px-6 py-2 rounded-full border border-yellow-400 hover:bg-yellow-400 hover:text-emerald-900 transition-colors"
-              onClick={() => navigate(`/quran/surah/${Math.max(1, surahId - 1)}`)}
-              disabled={surahId <= 1}
-            >
-              Previous Surah
-            </button>
-            <button 
-              className={`px-4 py-2 rounded-full transition-colors ${showTranslation ? 'bg-yellow-400 text-emerald-900' : 'text-yellow-400 border border-yellow-400'}`}
-              onClick={() => setShowTranslation(!showTranslation)}
-            >
-              Translation
-            </button>
-            <button 
-              className="text-yellow-400 px-6 py-2 rounded-full border border-yellow-400 hover:bg-yellow-400 hover:text-emerald-900 transition-colors"
-              onClick={() => navigate(`/quran/surah/${Math.min(114, surahId + 1)}`)}
-              disabled={surahId >= 114}
-            >
-              Next Surah
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Download Modal */}
+      {surahInfo && (
+        <SurahDownloadModal 
+          isOpen={showDownloadModal}
+          onClose={() => setShowDownloadModal(false)}
+          surahId={surahInfo.number}
+          surahName={surahInfo.englishName}
+          reciters={availableReciters}
+        />
+      )}
 
       <audio
         ref={audioRef}
