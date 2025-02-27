@@ -274,8 +274,16 @@ function SurahPage() {
         backgroundAttachment: "fixed"
       }}
     >
-      {/* Top Navigation Bar */}
-      <nav className="sticky top-0 bg-emerald-900/95 backdrop-blur-md border-b border-yellow-400/20 z-50">
+      {/* Top Navigation Bar - Updated with bg-top.jpeg background and green gradient */}
+      <nav 
+        className="sticky top-0 backdrop-blur-md border-b border-yellow-400/20 z-50"
+        style={{
+          backgroundImage: "linear-gradient(to right, rgba(16, 185, 129, 0.7), rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.5)), url('/src/assets/images/bg-top.jpeg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          boxShadow: "inset 0 0 0 2000px rgba(0, 0, 0, 0.4)" // Slightly lighter dark overlay
+        }}
+      >
         <div className="container mx-auto px-4 py-3">
           {/* Back button and app logo */}
           <div className="flex items-center justify-between mb-2">

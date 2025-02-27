@@ -80,7 +80,7 @@ function App() {
                 Store
               </button>
               <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
-                Sign Up
+                Support Us
               </button>
             </div>
 
@@ -133,7 +133,7 @@ function App() {
                   Store
                 </button>
                 <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
-                  Sign Up
+                  Support Us
                 </button>
               </div>
             </div>
