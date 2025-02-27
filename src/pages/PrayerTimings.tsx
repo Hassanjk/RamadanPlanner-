@@ -36,12 +36,12 @@ function PrayerTimings() {
 
   // Format prayer times for display
   const formattedPrayerTimes = prayerTimes ? [
-    { name: 'Fajr', time: formatPrayerTime(prayerTimes.fajr), arabicName: 'الفجر' },
-    { name: 'Sunrise', time: formatPrayerTime(prayerTimes.sunrise), arabicName: 'الشروق' },
-    { name: 'Dhuhr', time: formatPrayerTime(prayerTimes.dhuhr), arabicName: 'الظهر' },
-    { name: 'Asr', time: formatPrayerTime(prayerTimes.asr), arabicName: 'العصر' },
-    { name: 'Maghrib', time: formatPrayerTime(prayerTimes.maghrib), arabicName: 'المغرب' },
-    { name: 'Isha', time: formatPrayerTime(prayerTimes.isha), arabicName: 'العشاء' }
+    { name: 'Fajr', time: formatPrayerTime(prayerTimes.Fajr), arabicName: 'الفجر' },
+    { name: 'Sunrise', time: formatPrayerTime(prayerTimes.Sunrise), arabicName: 'الشروق' },
+    { name: 'Dhuhr', time: formatPrayerTime(prayerTimes.Dhuhr), arabicName: 'الظهر' },
+    { name: 'Asr', time: formatPrayerTime(prayerTimes.Asr), arabicName: 'العصر' },
+    { name: 'Maghrib', time: formatPrayerTime(prayerTimes.Maghrib), arabicName: 'المغرب' },
+    { name: 'Isha', time: formatPrayerTime(prayerTimes.Isha), arabicName: 'العشاء' }
   ] : [];
 
   // Update location display
