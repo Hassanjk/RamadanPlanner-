@@ -6,6 +6,9 @@ import { getAvailableTranslations, EditionInfo } from '../services/quranService'
 import { shareQuranVerseViaWhatsApp } from '../utils/shareUtils';
 import { getAvailableReciters, ReciterInfo } from '../utils/quranUtils';
 import SurahDownloadModal from '../components/SurahDownloadModal';
+// Import the images properly
+import backgroundImage from '../assets/images/background.jpeg';
+import bgTopImage from '../assets/images/bg-top.jpeg';
 
 interface Reciter {
   id: string;
@@ -268,7 +271,7 @@ function SurahPage() {
     <div 
       className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-900/95" 
       style={{ 
-        backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')",
+        backgroundImage: `linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed"
@@ -278,7 +281,7 @@ function SurahPage() {
       <nav 
         className="sticky top-0 backdrop-blur-md border-b border-yellow-400/20 z-50"
         style={{
-          backgroundImage: "linear-gradient(to right, rgba(16, 185, 129, 0.7), rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.5)), url('/src/assets/images/bg-top.jpeg')",
+          backgroundImage: `linear-gradient(to right, rgba(16, 185, 129, 0.7), rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.5)), url(${bgTopImage})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           boxShadow: "inset 0 0 0 2000px rgba(0, 0, 0, 0.4)" // Slightly lighter dark overlay

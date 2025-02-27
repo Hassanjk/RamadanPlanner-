@@ -7,6 +7,8 @@ import RecipeIngredients from '../components/recipe/RecipeIngredients';
 import RecipeInstructions from '../components/recipe/RecipeInstructions';
 import RecipeNutrition from '../components/recipe/RecipeNutrition';
 import SimilarRecipes from '../components/recipe/SimilarRecipes';
+// Import the image properly
+import backgroundImage from '../assets/images/background.jpeg';
 
 function RecipeDetail() {
   const navigate = useNavigate();
@@ -83,7 +85,7 @@ function RecipeDetail() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
-         style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}>
+         style={{ backgroundImage: `linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url(${backgroundImage})` }}>
       {/* Navigation */}
       <nav className="p-4">
         <div className="container mx-auto flex items-center justify-between">

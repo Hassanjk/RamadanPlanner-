@@ -3,6 +3,8 @@ import { Moon, X, Menu as MenuIcon, BookOpen, ArrowLeft, Star } from 'lucide-rea
 import { useNavigate } from 'react-router-dom';
 import { useTransition } from '../contexts/TransitionContext';
 import gsap from 'gsap';
+// Import the image properly
+import backgroundImage from '../assets/images/background.jpeg';
 
 function Store() {
   const navigate = useNavigate();
@@ -35,7 +37,7 @@ function Store() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
-         style={{ backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')" }}>
+         style={{ backgroundImage: `linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url(${backgroundImage})` }}>
       {/* Navigation - Simplified */}
       <nav className="absolute top-0 left-0 right-0 p-4 z-50">
         <div className="container mx-auto flex items-center justify-between">
@@ -63,7 +65,7 @@ function Store() {
             <div className="relative flex justify-center">
               <div className="w-[380px] aspect-[4/5] bg-white rounded-lg shadow-2xl transform hover:scale-105 transition-all duration-300 overflow-hidden">
                 <img 
-                  src="http://reflectiveramadan.com/wp-content/themes/youTube/assets/img/Ramadan_planner_24.png"
+                  src="https://reflectiveramadan.com/wp-content/themes/youTube/assets/img/Ramadan_planner_24.png"
                   alt="Ramadan Planner 2024"
                   className="w-full h-full object-cover"
                 />
@@ -137,7 +139,6 @@ function Store() {
       <svg className="overlay fixed inset-0 pointer-events-none" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
           <pattern id="transitionPattern" patternUnits="userSpaceOnUse" width="100" height="100">
-            {/* <image href="/src/assets/images/rasmadan.jpeg" width="100" height="100" preserveAspectRatio="xMidYMid slice" /> */}
             <rect width="100" height="100" fill="rgba(6, 95, 70, 0.02)" />
           </pattern>
         </defs>

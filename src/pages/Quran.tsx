@@ -3,6 +3,8 @@ import { Moon, ArrowLeft, Search, PlayCircle, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getAllSurahs } from '../services/quranService';
 import Cookies from 'js-cookie';
+// Import the image properly
+import backgroundImage from '../assets/images/background.jpeg';
 
 interface Surah {
   number: number;
@@ -65,7 +67,7 @@ function Quran() {
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-fixed bg-no-repeat bg-emerald-900/95" 
          style={{ 
-           backgroundImage: "linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url('/src/assets/images/background.jpeg')",
+           backgroundImage: `linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url(${backgroundImage})`,
            backgroundSize: "cover",
            backgroundPosition: "center",
            backgroundAttachment: "fixed"

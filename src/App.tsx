@@ -3,6 +3,8 @@ import { Moon, X, Menu, Facebook, Youtube, Twitter, BookOpen } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 import { useTransition } from './contexts/TransitionContext';
 import gsap from 'gsap';
+// Import the image properly
+import ramadanBg from './assets/images/ramadan.jpeg';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,7 +37,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "linear-gradient(to left, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url('/src/assets/images/ramadan.jpeg')" }}>
+    <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `linear-gradient(to left, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url(${ramadanBg})` }}>
       <div className="relative z-10">
         {/* Navigation */}
         <nav className="absolute top-0 left-0 right-0 p-4 z-50">
