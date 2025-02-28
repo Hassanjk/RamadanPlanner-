@@ -144,7 +144,7 @@ function App() {
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat" 
          style={{ 
            backgroundImage: `linear-gradient(to left, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url(${ramadanBg})`,
-           backgroundPosition: 'left center' // Shifted background to the left for better content positioning
+           backgroundPosition: 'top center' // Shifted background to the left for better content positioning
          }}>
       <div className="relative z-10">
         {/* Navigation */}
