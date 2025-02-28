@@ -60,6 +60,9 @@ const QuranReader = ({
             revelationType: firstVerse.surah.revelationType,
             numberOfAyahs: data.length
           });
+          
+          // Save current surah to cookies for "continue reading" functionality
+          Cookies.set('quranSurah', String(firstVerse.surah.number), { expires: 30 });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load Quran data');
@@ -94,6 +97,11 @@ const QuranReader = ({
     }
 
     setCurrentVerse(verseIndex);
+    
+    // Save current verse position to cookies
+    if (verses[verseIndex]?.numberInSurah) {
+      Cookies.set('quranVerse', String(verses[verseIndex].numberInSurah), { expires: 30 });
+    }
     
     if (audioRef.current && verses[verseIndex]?.audio) {
       audioRef.current.src = verses[verseIndex].audio || '';
@@ -144,10 +152,14 @@ const QuranReader = ({
 
   // Save reading progress
   const saveProgress = () => {
-    if (currentVerse !== undefined && surahInfo) {
+    if (surahInfo) {
       // Save current position to cookies
       Cookies.set('quranSurah', String(surahInfo.number), { expires: 30 });
-      Cookies.set('quranVerse', String(verses[currentVerse]?.numberInSurah), { expires: 30 });
+      
+      if (verses[currentVerse]?.numberInSurah) {
+        Cookies.set('quranVerse', String(verses[currentVerse].numberInSurah), { expires: 30 });
+      }
+      
       // Show some feedback to user
       return true;
     }

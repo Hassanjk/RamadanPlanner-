@@ -19,8 +19,9 @@ function Quran() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [surahs, setSurahs] = useState<Surah[]>([]);
-  const [savedPage, setSavedPage] = useState<string | undefined>();
+  const [savedSurah, setSavedSurah] = useState<string | undefined>();
   const [savedVerse, setSavedVerse] = useState<string | undefined>();
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     loadSurahs();
@@ -28,18 +29,21 @@ function Quran() {
   }, []);
 
   const loadSurahs = async () => {
+    setLoading(true);
     try {
       const data = await getAllSurahs();
       setSurahs(data);
     } catch (error) {
       console.error('Error loading surahs:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const checkSavedProgress = () => {
-    const page = Cookies.get('quranPage');
+    const surah = Cookies.get('quranSurah');
     const verse = Cookies.get('quranVerse');
-    setSavedPage(page);
+    setSavedSurah(surah);
     setSavedVerse(verse);
   };
   
@@ -54,9 +58,18 @@ function Quran() {
   };
 
   const continuePreviousReading = () => {
-    if (savedPage) {
-      navigate(`/quran/page/${savedPage}${savedVerse ? `/${savedVerse}` : ''}`);
+    if (savedSurah) {
+      navigate(`/quran/surah/${savedSurah}${savedVerse ? `#verse-${savedVerse}` : ''}`);
     }
+  };
+
+  // Get the name of the saved surah
+  const getSavedSurahName = (): string => {
+    if (!savedSurah) return '';
+    
+    const surahNumber = parseInt(savedSurah, 10);
+    const surah = surahs.find(s => s.number === surahNumber);
+    return surah ? surah.englishName : `Surah ${savedSurah}`;
   };
 
   const filteredSurahs = surahs.filter(surah =>
@@ -96,12 +109,12 @@ function Quran() {
             القرآن الكريم
           </h1>
           
-          {savedPage && (
+          {savedSurah && (
             <button
               onClick={continuePreviousReading}
               className="mb-8 bg-yellow-400/20 text-yellow-400 px-6 py-3 rounded-full hover:bg-yellow-400/30 transition-colors"
             >
-              Continue Reading from Page {savedPage}
+              Continue Reading from {getSavedSurahName()} {savedVerse ? `(Verse ${savedVerse})` : ''}
             </button>
           )}
 
@@ -119,43 +132,49 @@ function Quran() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredSurahs.map((surah) => (
-            <div 
-              key={surah.number}
-              className="bg-emerald-800/30 rounded-2xl p-6 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 transition-all duration-300 group cursor-pointer"
-              onClick={() => handleSurahClick(surah.number)}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 bg-emerald-800/50 rounded-full flex items-center justify-center text-yellow-400 font-arabic">
-                  {toArabicNumbers(surah.number)}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredSurahs.map((surah) => (
+              <div 
+                key={surah.number}
+                className="bg-emerald-800/30 rounded-2xl p-6 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 transition-all duration-300 group cursor-pointer"
+                onClick={() => handleSurahClick(surah.number)}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-10 h-10 bg-emerald-800/50 rounded-full flex items-center justify-center text-yellow-400 font-arabic">
+                    {toArabicNumbers(surah.number)}
+                  </div>
+                  <span className="text-sm text-yellow-400 font-arabic">
+                    {surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}
+                  </span>
                 </div>
-                <span className="text-sm text-yellow-400 font-arabic">
-                  {surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}
-                </span>
+                
+                <h3 className="text-2xl font-bold text-white mb-1 font-arabic text-right">
+                  {surah.name}
+                </h3>
+                <p className="text-yellow-400 text-sm mb-4">{surah.englishName}</p>
+                
+                <div className="flex justify-between items-center">
+                  <div className="text-white text-sm font-arabic">
+                    عدد الآيات: {toArabicNumbers(surah.numberOfAyahs)}
+                  </div>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
+                      <PlayCircle className="w-6 h-6" />
+                    </button>
+                    <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
+                      <BookOpen className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              
-              <h3 className="text-2xl font-bold text-white mb-1 font-arabic text-right">
-                {surah.name}
-              </h3>
-              <p className="text-yellow-400 text-sm mb-4">{surah.englishName}</p>
-              
-              <div className="flex justify-between items-center">
-                <div className="text-white text-sm font-arabic">
-                  عدد الآيات: {toArabicNumbers(surah.numberOfAyahs)}
-                </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
-                    <PlayCircle className="w-6 h-6" />
-                  </button>
-                  <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
-                    <BookOpen className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

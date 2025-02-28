@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Moon, ArrowLeft, Volume2, Shuffle, RotateCcw, Pause, BookmarkPlus, Share2, Settings2, MinusCircle, PlusCircle, Globe, Mic2, ChevronDown, AlertTriangle, Search, ChevronLeft, ChevronRight, Book, Download } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import QuranReader from '../components/QuranReader';
 import { getAvailableTranslations, EditionInfo } from '../services/quranService';
 import { shareQuranVerseViaWhatsApp } from '../utils/shareUtils';
@@ -25,6 +25,7 @@ const reciters: Reciter[] = [
 
 function SurahPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const surahId = id ? parseInt(id, 10) : 1;
   
@@ -39,9 +40,19 @@ function SurahPage() {
   const [translationsError, setTranslationsError] = useState<string | null>(null);
   const [verseToFind, setVerseToFind] = useState<string>('');
   const [verseError, setVerseError] = useState<string | null>(null);
+  const [bookmarkFeedback, setBookmarkFeedback] = useState<string | null>(null);
   
   // Create a ref for each verse to enable scrolling
   const verseRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  // Parse the hash to get the initial verse if provided
+  const getInitialVerseFromHash = (): number => {
+    if (location.hash.startsWith('#verse-')) {
+      const verseNumber = parseInt(location.hash.replace('#verse-', ''), 10);
+      return verseNumber > 0 ? verseNumber - 1 : 0; // Convert to 0-based index
+    }
+    return 0;
+  };
   
   // Initialize QuranReader with default translation
   const {
@@ -69,6 +80,7 @@ function SurahPage() {
   } = QuranReader({ 
     surahNumber: surahId,
     mode: 'surah',
+    initialVerse: getInitialVerseFromHash(),
     translationEdition: selectedLanguage?.identifier || 'en.asad'
   });
   
@@ -143,6 +155,24 @@ function SurahPage() {
     }
   }, [selectedLanguage]);
 
+  // Handle URL hash changes for direct verse navigation
+  useEffect(() => {
+    if (location.hash.startsWith('#verse-') && verses.length > 0) {
+      const verseNumber = parseInt(location.hash.replace('#verse-', ''), 10);
+      if (!isNaN(verseNumber) && verseNumber > 0) {
+        // Find the verse index (0-based) from the verse number (1-based)
+        const verseIndex = verses.findIndex(v => v.numberInSurah === verseNumber);
+        if (verseIndex !== -1) {
+          // Scroll to the verse after a short delay to ensure rendering is complete
+          setTimeout(() => {
+            scrollToVerse(verseIndex);
+            playVerse(verseIndex);
+          }, 500);
+        }
+      }
+    }
+  }, [location.hash, verses]);
+
   const scrollToVerse = (index: number) => {
     if (verseRefs.current[index]) {
       // Scroll with a slight offset from the top
@@ -205,6 +235,9 @@ function SurahPage() {
       return;
     }
     
+    // Update URL hash for direct linking
+    navigate(`#verse-${verseNum}`, { replace: true });
+    
     // Scroll to the verse
     scrollToVerse(verseIndex);
     
@@ -241,6 +274,33 @@ function SurahPage() {
 
   const handleDownloadClick = () => {
     setShowDownloadModal(true);
+  };
+
+  // Handle bookmark with feedback
+  const handleBookmark = (verseKey: string) => {
+    const isNowBookmarked = toggleBookmark(verseKey);
+    
+    // Show feedback
+    setBookmarkFeedback(isNowBookmarked ? 'Bookmark added' : 'Bookmark removed');
+    
+    // Clear feedback after 2 seconds
+    setTimeout(() => {
+      setBookmarkFeedback(null);
+    }, 2000);
+    
+    // Also save reading progress
+    saveProgress();
+  };
+
+  // Handle save progress with feedback
+  const handleSaveProgress = () => {
+    const saved = saveProgress();
+    if (saved) {
+      setBookmarkFeedback('Reading position saved');
+      setTimeout(() => {
+        setBookmarkFeedback(null);
+      }, 2000);
+    }
   };
 
   const totalVerses = verses.length;
@@ -489,8 +549,8 @@ function SurahPage() {
             {/* Additional Controls */}
             <div className="flex items-center gap-4">
               <button 
-                className="text-yellow-400 hover:text-yellow-500 transition-colors"
-                onClick={saveProgress}
+                className="text-yellow-400 hover:text-yellow-500 transition-colors relative"
+                onClick={handleSaveProgress}
               >
                 <BookmarkPlus className="w-5 h-5" />
               </button>
@@ -520,6 +580,13 @@ function SurahPage() {
           </div>
         </div>
       </div>
+
+      {/* Bookmark/Save Feedback Toast */}
+      {bookmarkFeedback && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-emerald-900 px-4 py-2 rounded-full z-50 animate-fadeIn">
+          {bookmarkFeedback}
+        </div>
+      )}
 
       {/* Verses Content - Scrollable Area */}
       <div className="flex-grow overflow-y-auto" style={{ height: "calc(100vh - 109px - 62px)" }}>
@@ -575,6 +642,7 @@ function SurahPage() {
                         <span 
                           key={verse.number}
                           ref={el => verseRefs.current[index] = el}
+                          id={`verse-${verse.numberInSurah}`}
                           className={`relative inline ${currentVerse === index ? 'text-yellow-400' : ''}`}
                           onClick={() => playVerse(index)}
                         >
@@ -600,6 +668,7 @@ function SurahPage() {
                   <div 
                     key={verse.number}
                     ref={el => verseRefs.current[index] = el}
+                    id={`verse-${verse.numberInSurah}`}
                     className={`rounded-2xl p-6 transition-all duration-300 bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 hover:border-yellow-400/30 ${
                       currentVerse === index ? 'border-yellow-400 border-2' : ''
                     } ${verseContainsBismillah ? 'text-center' : ''}`}
@@ -625,7 +694,7 @@ function SurahPage() {
                           className={`text-yellow-400 hover:text-yellow-500 transition-colors ${
                             isBookmarked(`${verse.surah.number}:${verse.numberInSurah}`) ? 'text-yellow-500' : ''
                           }`}
-                          onClick={() => toggleBookmark(`${verse.surah.number}:${verse.numberInSurah}`)}
+                          onClick={() => handleBookmark(`${verse.surah.number}:${verse.numberInSurah}`)}
                         >
                           <BookmarkPlus className="w-5 h-5" />
                         </button>
