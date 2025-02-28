@@ -396,7 +396,7 @@ function App() {
                 </div>
               ) : !showLocationAlert && !prayerTimesLoading && (
                 <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-xl p-4 mb-8 md:mb-12 max-w-xl mx-auto md:mx-0 flex items-center justify-center">
-                  <p className="text-white text-sm">Enable location to see next prayer time</p>
+                  <p className="text-white text-sm">please wait ...</p>
                 </div>
               )}
 
