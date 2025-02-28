@@ -13,7 +13,9 @@ function RamadanCalendar() {
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [manualLocation, setManualLocation] = useState('');
   const [selectedYear, setSelectedYear] = useState(2025);
-  const [useGeolocationData, setUseGeolocationData] = useState(Boolean(Cookies.get('useGeolocation') || false));
+  const [useGeolocationData, setUseGeolocationData] = useState(
+    Cookies.get('useGeolocation') === 'false' ? false : true // Default to true
+  );
   
   // Get Ramadan calendar data
   const { 
@@ -25,6 +27,14 @@ function RamadanCalendar() {
     year: selectedYear,
     address: location
   });
+
+  // Update location from cookies when component mounts
+  useEffect(() => {
+    const savedLocation = Cookies.get('prayerLocation');
+    if (savedLocation) {
+      setLocation(savedLocation);
+    }
+  }, []);
 
   // Handle location change
   const handleLocationSubmit = (e: React.FormEvent) => {
@@ -45,6 +55,10 @@ function RamadanCalendar() {
     setUseGeolocationData(newValue);
     Cookies.set('useGeolocation', newValue.toString(), { expires: 365 });
     setShowLocationInput(false);
+    
+    if (newValue) {
+      refresh();
+    }
   };
 
   // Format date for display

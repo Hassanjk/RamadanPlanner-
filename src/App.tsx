@@ -1,15 +1,84 @@
-import React, { useState } from 'react';
-import { Moon, X, Menu, Facebook, Youtube, Twitter, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Moon, X, Menu, Facebook, Youtube, Twitter, BookOpen, Clock, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTransition } from './contexts/TransitionContext';
 import gsap from 'gsap';
+import { useGeolocation } from './hooks/useGeolocation';
+import { usePrayerTimes } from './hooks/usePrayerTimes';
+import { formatPrayerTime } from './services/prayerService';
+import Cookies from 'js-cookie';
 // Import the image properly
 import ramadanBg from './assets/images/ramadan.jpeg';
 
 function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [locationPermissionRequested, setLocationPermissionRequested] = useState(false);
+  const [locationName, setLocationName] = useState('');
   const navigate = useNavigate();
   const { setIsTransitioning } = useTransition();
+
+  // Get user's geolocation with high accuracy
+  const geolocation = useGeolocation({
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  });
+  
+  // Get prayer times based on location
+  const { 
+    prayerTimes, 
+    nextPrayer, 
+    date, 
+    meta,
+    loading: prayerTimesLoading, 
+    error: prayerTimesError 
+  } = usePrayerTimes({
+    latitude: geolocation.latitude,
+    longitude: geolocation.longitude
+  });
+
+  // Request location permission as soon as the component mounts
+  useEffect(() => {
+    if (!locationPermissionRequested && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // Success callback - permission granted
+          setLocationPermissionRequested(true);
+          
+          // Save location to cookies for use in other components
+          Cookies.set('useGeolocation', 'true', { expires: 365 });
+        },
+        (error) => {
+          // Error callback - permission denied or error
+          console.error("Error getting geolocation:", error);
+          setLocationPermissionRequested(true);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+  }, [locationPermissionRequested]);
+
+  // Get location name using reverse geocoding when coordinates are available
+  useEffect(() => {
+    if (geolocation.latitude && geolocation.longitude) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geolocation.latitude}&lon=${geolocation.longitude}&zoom=10`)
+        .then(response => response.json())
+        .then(data => {
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+          const country = data.address?.country || '';
+          const locationString = `${city}, ${country}`.trim();
+          setLocationName(locationString);
+          
+          // Save location to cookies for use in other components
+          if (locationString) {
+            Cookies.set('prayerLocation', locationString, { expires: 365 });
+          }
+        })
+        .catch(error => {
+          console.error("Error getting location name:", error);
+        });
+    }
+  }, [geolocation.latitude, geolocation.longitude]);
 
   const handleNavigation = (path: string) => {
     setIsTransitioning(true);
@@ -34,6 +103,41 @@ function App() {
         ease: 'power1',
         attr: { d: 'M 0 0 h 100 c 0 50 0 50 0 100 H 0 V 0 Z' }
       });
+  };
+
+  // Get the current Hijri date directly from API response
+  const getHijriDate = () => {
+    if (!date?.hijri) return "29 Shaʿbān, 1446"; // Default fallback
+    return date.hijri;
+  };
+
+  // Get formatted date
+  const getFormattedDate = () => {
+    if (!date?.gregorian) {
+      const now = new Date();
+      return `${now.getDate()} ${now.toLocaleString('default', { month: 'long' })}`;
+    }
+    
+    const parts = date.gregorian.split('-');
+    if (parts.length >= 3) {
+      const day = parseInt(parts[0]);
+      const month = new Date(0, parseInt(parts[1]) - 1).toLocaleString('default', { month: 'long' });
+      return `${day} ${month}`;
+    }
+    
+    return date.gregorian;
+  };
+
+  // Get Suhoor time (Fajr)
+  const getSuhoorTime = () => {
+    if (!prayerTimes) return "2:09 AM";
+    return formatPrayerTime(prayerTimes.Fajr);
+  };
+
+  // Get Iftar time (Maghrib)
+  const getIftarTime = () => {
+    if (!prayerTimes) return "6:14 PM";
+    return formatPrayerTime(prayerTimes.Maghrib);
   };
 
   return (
@@ -151,23 +255,54 @@ function App() {
                 Ramadan Kareem
               </h1>
 
+              {/* Location indicator if available */}
+              {!geolocation.loading && !geolocation.error && geolocation.latitude && (
+                <div className="flex justify-center md:justify-start mb-4">
+                  <div className="flex items-center gap-2 bg-emerald-800/50 px-4 py-2 rounded-full text-white text-sm">
+                    <MapPin className="w-4 h-4 text-yellow-400" />
+                    <span>
+                      {prayerTimesLoading ? 'Loading location...' : 
+                       locationName || (meta?.timezone ? meta.timezone.replace('/', ', ') : 'Your location')}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-6">
                 <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base">
-                  <span>1 Ramadan</span>
+                  <span>{getHijriDate()}</span>
                 </div>
                 <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base">
-                  <span>23 March</span>
+                  <span>{getFormattedDate()}</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-8 md:mb-12">
-                <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base">
-                  <span>2:09 AM Suhoor</span>
+                <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-yellow-400" />
+                  <span>{getSuhoorTime()} Suhoor</span>
                 </div>
-                <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base">
-                  <span>6:14 PM Iftar</span>
+                <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-yellow-400" />
+                  <span>{getIftarTime()} Iftar</span>
                 </div>
               </div>
+
+              {/* Next Prayer Indicator */}
+              {nextPrayer && (
+                <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-xl p-4 mb-8 md:mb-12 max-w-xl mx-auto md:mx-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-yellow-400 text-sm">Next Prayer</p>
+                      <h3 className="text-white text-xl font-semibold">{nextPrayer.name}</h3>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white text-sm">Time Remaining</p>
+                      <p className="text-yellow-400 text-xl font-bold">{nextPrayer.timeRemaining}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <p className="text-white text-lg md:text-2xl mb-8 md:mb-12 max-w-xl mx-auto md:mx-0">
                 Happy Fasting To All Muslim Around The World. May all your prayers be answered this Ramadan and always.

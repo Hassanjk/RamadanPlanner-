@@ -14,6 +14,7 @@ const countryMethodMap: Record<string, number> = {
   'France': 5, // Assuming ID 5 is for "Union Organization Islamic de France"
   'Turkey': 6, // Assuming ID 6 is for "Diyanet isleri Baskanlljl, Turkey"
   'Russia': 7, // Assuming ID 7 is for "Spiritual Administration of Muslims of Russia"
+  'United States': 2, // ISNA for United States
 };
 
 function PrayerTimings() {
@@ -28,8 +29,12 @@ function PrayerTimings() {
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [countryDetected, setCountryDetected] = useState('');
   
-  // Get user's geolocation
-  const geolocation = useGeolocation();
+  // Get user's geolocation with high accuracy
+  const geolocation = useGeolocation({
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  });
   
   // Get prayer times based on location
   const { 
@@ -47,32 +52,21 @@ function PrayerTimings() {
     method: selectedMethod
   });
 
-  // Format prayer times for display
-  const formattedPrayerTimes = prayerTimes ? [
-    { name: 'Fajr', time: formatPrayerTime(prayerTimes.Fajr), arabicName: 'الفجر' },
-    { name: 'Sunrise', time: formatPrayerTime(prayerTimes.Sunrise), arabicName: 'الشروق' },
-    { name: 'Dhuhr', time: formatPrayerTime(prayerTimes.Dhuhr), arabicName: 'الظهر' },
-    { name: 'Asr', time: formatPrayerTime(prayerTimes.Asr), arabicName: 'العصر' },
-    { name: 'Maghrib', time: formatPrayerTime(prayerTimes.Maghrib), arabicName: 'المغرب' },
-    { name: 'Isha', time: formatPrayerTime(prayerTimes.Isha), arabicName: 'العشاء' }
-  ] : [];
-
   // Update location display and automatically set calculation method
   useEffect(() => {
     if (useGeolocationData && meta.latitude && meta.longitude) {
       // Reverse geocode to get location name and country
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${meta.latitude}&lon=${meta.longitude}`)
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${meta.latitude}&lon=${meta.longitude}&zoom=10`)
         .then(response => response.json())
         .then(data => {
-          const locationName = data.address ? 
-            `${data.address.city || data.address.town || data.address.village || data.address.county || ''}, ${data.address.country || ''}` : 
-            `${meta.latitude.toFixed(2)}, ${meta.longitude.toFixed(2)}`;
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+          const country = data.address?.country || '';
+          const locationName = `${city}, ${country}`.trim();
           
-          setLocation(locationName);
+          setLocation(locationName || `${meta.latitude.toFixed(2)}, ${meta.longitude.toFixed(2)}`);
           Cookies.set('prayerLocation', locationName, { expires: 365 });
           
           // If country is detected, set the calculation method based on country
-          const country = data.address?.country;
           if (country) {
             setCountryDetected(country);
             
@@ -336,9 +330,16 @@ function PrayerTimings() {
         )}
 
         {/* Prayer Times Grid */}
-        {!loading && !error && formattedPrayerTimes.length > 0 && (
+        {!loading && !error && prayerTimes && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {formattedPrayerTimes.map((prayer) => (
+            {[
+              { name: 'Fajr', arabicName: 'الفجر', time: formatPrayerTime(prayerTimes.Fajr) },
+              { name: 'Sunrise', arabicName: 'الشروق', time: formatPrayerTime(prayerTimes.Sunrise) },
+              { name: 'Dhuhr', arabicName: 'الظهر', time: formatPrayerTime(prayerTimes.Dhuhr) },
+              { name: 'Asr', arabicName: 'العصر', time: formatPrayerTime(prayerTimes.Asr) },
+              { name: 'Maghrib', arabicName: 'المغرب', time: formatPrayerTime(prayerTimes.Maghrib) },
+              { name: 'Isha', arabicName: 'العشاء', time: formatPrayerTime(prayerTimes.Isha) }
+            ].map((prayer) => (
               <div 
                 key={prayer.name}
                 className={`bg-emerald-800/30 rounded-2xl p-6 backdrop-blur-sm border ${
