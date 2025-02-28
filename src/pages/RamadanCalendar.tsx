@@ -3,6 +3,7 @@ import { Moon, ArrowLeft, Calendar, MapPin, Download, Info, RefreshCw, AlertTria
 import { useNavigate } from 'react-router-dom';
 import { useRamadanCalendar } from '../hooks/useRamadanCalendar';
 import { formatPrayerTime } from '../services/ramadanService';
+import { generateRamadanCalendarPDF } from '../utils/pdfUtils';
 import Cookies from 'js-cookie';
 // Import the image properly
 import backgroundImage from '../assets/images/background.jpeg';
@@ -16,6 +17,7 @@ function RamadanCalendar() {
   const [useGeolocationData, setUseGeolocationData] = useState(
     Cookies.get('useGeolocation') === 'false' ? false : true // Default to true
   );
+  const [isDownloading, setIsDownloading] = useState(false);
   
   // Get Ramadan calendar data
   const { 
@@ -71,6 +73,21 @@ function RamadanCalendar() {
     });
   };
 
+  // Handle download calendar
+  const handleDownloadCalendar = () => {
+    if (calendar.length === 0 || loading) return;
+    
+    setIsDownloading(true);
+    
+    try {
+      generateRamadanCalendarPDF(calendar, location, selectedYear);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
          style={{ backgroundImage: `linear-gradient(to left, rgba(20, 24, 23, 0.001), rgba(10, 14, 13, 0.002)), url(${backgroundImage})` }}>
@@ -100,9 +117,26 @@ function RamadanCalendar() {
           
           {/* Download Button - Moved to top */}
           <div className="mb-4">
-            <button className="inline-flex items-center gap-2 bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
-              <Download className="w-5 h-5" />
-              <span>Download Full Calendar</span>
+            <button 
+              onClick={handleDownloadCalendar}
+              disabled={loading || calendar.length === 0 || isDownloading}
+              className={`inline-flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-colors ${
+                loading || calendar.length === 0 || isDownloading
+                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                  : 'bg-yellow-400 text-emerald-900 hover:bg-yellow-500'
+              }`}
+            >
+              {isDownloading ? (
+                <>
+                  <div className="animate-spin h-5 w-5 border-2 border-emerald-900 border-t-transparent rounded-full"></div>
+                  <span>Generating PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5" />
+                  <span>Download Full Calendar</span>
+                </>
+              )}
             </button>
           </div>
           
