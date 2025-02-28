@@ -69,22 +69,51 @@ export interface CalculationMethod {
 
 // Available calculation methods
 export const calculationMethods: CalculationMethod[] = [
-  { id: 0, name: 'Shia Ithna-Ashari', description: 'Leva Institute, Qum' },
-  { id: 1, name: 'University of Islamic Sciences, Karachi', description: 'Fajr: 18°, Isha: 18°' },
-  { id: 2, name: 'Islamic Society of North America (ISNA)', description: 'Fajr: 15°, Isha: 15°' },
-  { id: 3, name: 'Muslim World League', description: 'Fajr: 18°, Isha: 17°' },
-  { id: 4, name: 'Umm Al-Qura University, Makkah', description: 'Fajr: 18.5°, Isha: 90 min after Maghrib' },
-  { id: 5, name: 'Egyptian General Authority of Survey', description: 'Fajr: 19.5°, Isha: 17.5°' },
-  { id: 7, name: 'Institute of Geophysics, University of Tehran', description: 'Fajr: 17.7°, Isha: 14°' },
-  { id: 8, name: 'Gulf Region', description: 'Fajr: 19.5°, Isha: 90 min after Maghrib' },
-  { id: 9, name: 'Kuwait', description: 'Fajr: 18°, Isha: 17.5°' },
-  { id: 10, name: 'Qatar', description: 'Fajr: 18°, Isha: 90 min after Maghrib' },
-  { id: 11, name: 'Majlis Ugama Islam Singapura, Singapore', description: 'Fajr: 20°, Isha: 18°' },
-  { id: 12, name: 'Union Organization Islamic de France', description: 'Fajr: 12°, Isha: 12°' },
-  { id: 13, name: 'Diyanet İşleri Başkanlığı, Turkey', description: 'Fajr: 18°, Isha: 17°' },
-  { id: 14, name: 'Spiritual Administration of Muslims of Russia', description: 'Fajr: 16°, Isha: 15°' },
-  { id: 15, name: 'Moonsighting Committee Worldwide', description: 'Fajr: 18°, Isha: 18°' },
-  { id: 16, name: 'Dubai, UAE', description: 'Fajr: 18.2°, Isha: 18.2°' }
+  {
+    id: 1,
+    name: "Muslim World League",
+    description: "Fajr: 18°, Isha: 17°",
+  },
+  {
+    id: 2,
+    name: "Islamic Society of North America (ISNA)",
+    description: "Fajr: 15°, Isha: 15°",
+  },
+  {
+    id: 3,
+    name: "Egyptian General Authority of Survey",
+    description: "Fajr: 19.5°, Isha: 17.5°",
+  },
+  {
+    id: 4,
+    name: "Majlis Ugama Islam Singapura, Singapore",
+    description: "Fajr: 20°, Isha: 18°",
+  },
+  {
+    id: 5,
+    name: "Union Organization Islamic de France",
+    description: "Fajr: 12°, Isha: 12°",
+  },
+  {
+    id: 6,
+    name: "Diyanet İşleri Başkanlığı, Turkey",
+    description: "Fajr: 18°, Isha: 17°",
+  },
+  {
+    id: 7,
+    name: "Spiritual Administration of Muslims of Russia",
+    description: "Fajr: 16°, Isha: 15°",
+  },
+  {
+    id: 8,
+    name: "University of Islamic Sciences, Karachi",
+    description: "Fajr: 18°, Isha: 18°",
+  },
+  {
+    id: 9,
+    name: "Umm Al-Qura University, Makkah",
+    description: "Fajr: 18.5°, Isha: 90min after Maghrib",
+  }
 ];
 
 // Common API request parameters
@@ -110,22 +139,16 @@ const formatDate = (date?: string | Date): string => {
 };
 
 // Format prayer time from API response
-export const formatPrayerTime = (time: string): string => {
-  if (!time) return '';
+export const formatPrayerTime = (timeString: string): string => {
+  if (!timeString) return "--:--";
   
-  // Handle various time formats
-  const timeParts = time.split(':');
-  if (timeParts.length < 2) return time;
-  
-  let hours = parseInt(timeParts[0], 10);
-  const minutes = timeParts[1].substring(0, 2);
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  
-  // Convert to 12-hour format
-  hours = hours % 12;
-  hours = hours === 0 ? 12 : hours;
-  
-  return `${hours}:${minutes} ${ampm}`;
+  try {
+    // Assuming timeString is in 24-hour format like "14:23"
+    const time = new Date(`2000-01-01T${timeString}`);
+    return time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch (error) {
+    return timeString; // Return the original string if there's any error
+  }
 };
 
 // Base URL for the Al-Adhan API

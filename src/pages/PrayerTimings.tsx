@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, MapPin, Bell, Calendar, Clock, ArrowLeft, Settings, RefreshCw, AlertTriangle, ChevronDown, Check } from 'lucide-react';
+import { Moon, MapPin, Bell, Calendar, Clock, ArrowLeft, Settings, RefreshCw, AlertTriangle, ChevronDown, Check, Wifi } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { usePrayerTimes } from '../hooks/usePrayerTimes';
@@ -8,14 +8,25 @@ import Cookies from 'js-cookie';
 // Import the image properly
 import backgroundImage from '../assets/images/background.jpeg';
 
+// Map of country to recommended calculation method
+const countryMethodMap: Record<string, number> = {
+  'Singapore': 4, // Assuming ID 4 is for "Majlis Ugama Islam Singapura, Singapore"
+  'France': 5, // Assuming ID 5 is for "Union Organization Islamic de France"
+  'Turkey': 6, // Assuming ID 6 is for "Diyanet isleri Baskanlljl, Turkey"
+  'Russia': 7, // Assuming ID 7 is for "Spiritual Administration of Muslims of Russia"
+};
+
 function PrayerTimings() {
   const navigate = useNavigate();
   const [location, setLocation] = useState(Cookies.get('prayerLocation') || '');
   const [showMethodDropdown, setShowMethodDropdown] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(Number(Cookies.get('prayerMethod')) || 3);
-  const [useGeolocationData, setUseGeolocationData] = useState(Boolean(Cookies.get('useGeolocation') || false));
+  const [useGeolocationData, setUseGeolocationData] = useState(
+    Cookies.get('useGeolocation') === 'false' ? false : true // Default to true
+  );
   const [manualLocation, setManualLocation] = useState('');
   const [showLocationInput, setShowLocationInput] = useState(false);
+  const [countryDetected, setCountryDetected] = useState('');
   
   // Get user's geolocation
   const geolocation = useGeolocation();
@@ -46,10 +57,10 @@ function PrayerTimings() {
     { name: 'Isha', time: formatPrayerTime(prayerTimes.Isha), arabicName: 'العشاء' }
   ] : [];
 
-  // Update location display
+  // Update location display and automatically set calculation method
   useEffect(() => {
     if (useGeolocationData && meta.latitude && meta.longitude) {
-      // Reverse geocode to get location name
+      // Reverse geocode to get location name and country
       fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${meta.latitude}&lon=${meta.longitude}`)
         .then(response => response.json())
         .then(data => {
@@ -59,6 +70,21 @@ function PrayerTimings() {
           
           setLocation(locationName);
           Cookies.set('prayerLocation', locationName, { expires: 365 });
+          
+          // If country is detected, set the calculation method based on country
+          const country = data.address?.country;
+          if (country) {
+            setCountryDetected(country);
+            
+            // Check if we have a recommended method for this country
+            for (const [mappedCountry, methodId] of Object.entries(countryMethodMap)) {
+              if (country.includes(mappedCountry)) {
+                setSelectedMethod(methodId);
+                Cookies.set('prayerMethod', methodId.toString(), { expires: 365 });
+                break;
+              }
+            }
+          }
         })
         .catch(() => {
           setLocation(`${meta.latitude.toFixed(2)}, ${meta.longitude.toFixed(2)}`);
@@ -92,10 +118,22 @@ function PrayerTimings() {
     setUseGeolocationData(newValue);
     Cookies.set('useGeolocation', newValue.toString(), { expires: 365 });
     setShowLocationInput(false);
+    
+    if (newValue) {
+      refresh();
+    }
   };
 
   // Get current time
   const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Determine if error is likely due to VPN
+  const isVpnRelatedError = error && 
+    (error.includes("location") || 
+     error.includes("geolocation") || 
+     error.toLowerCase().includes("permission") ||
+     !geolocation.latitude || 
+     !geolocation.longitude);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat bg-emerald-900/95" 
@@ -214,19 +252,57 @@ function PrayerTimings() {
           </div>
         </div>
 
-        {/* Error State */}
+        {/* Error State - Enhanced with VPN suggestion */}
         {error && (
           <div className="max-w-3xl mx-auto mb-8 bg-red-500/20 border border-red-500/30 rounded-lg p-6 text-center">
             <AlertTriangle className="w-8 h-8 text-red-400 mx-auto mb-2" />
             <h3 className="text-xl text-white mb-2">Error Loading Prayer Times</h3>
             <p className="text-gray-300 mb-4">{error}</p>
-            <button 
-              onClick={refresh}
-              className="bg-yellow-400 text-emerald-900 px-6 py-2 rounded-full hover:bg-yellow-500 transition-colors flex items-center gap-2 mx-auto"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Try Again</span>
-            </button>
+            
+            {isVpnRelatedError && (
+              <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wifi className="w-5 h-5 text-yellow-400" />
+                  <p className="text-yellow-300 font-medium">VPN Detected</p>
+                </div>
+                <p className="text-gray-300 text-sm">Please try turning off your VPN for more accurate location calculation.</p>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap justify-center gap-3">
+              <button 
+                onClick={refresh}
+                className="bg-yellow-400 text-emerald-900 px-6 py-2 rounded-full hover:bg-yellow-500 transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Try Again</span>
+              </button>
+              
+              {!useGeolocationData && (
+                <button 
+                  onClick={() => {
+                    setUseGeolocationData(true);
+                    Cookies.set('useGeolocation', 'true', { expires: 365 });
+                    refresh();
+                  }}
+                  className="bg-emerald-700 text-white px-6 py-2 rounded-full hover:bg-emerald-600 transition-colors flex items-center gap-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>Use My Location</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Auto-selected Method Info (when country is detected) */}
+        {countryDetected && !error && (
+          <div className="max-w-3xl mx-auto mb-6">
+            <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-4 text-center">
+              <p className="text-white">
+                <span className="text-yellow-300">Auto-selected method</span> based on your location in <span className="text-yellow-300">{countryDetected}</span>
+              </p>
+            </div>
           </div>
         )}
 
