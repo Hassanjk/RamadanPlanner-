@@ -358,6 +358,17 @@ function SurahPage() {
     return verseText;
   };
 
+  // Add this new function after your existing handler functions
+  const handleVersePlayPause = (index: number) => {
+    if (currentVerse === index && isPlaying) {
+      // If this verse is currently playing, pause it
+      togglePlayPause();
+    } else {
+      // Otherwise, play this verse
+      playVerse(index);
+    }
+  };
+
   return (
     <div 
       className="min-h-screen flex flex-col relative overflow-hidden bg-emerald-900/95" 
@@ -685,7 +696,7 @@ function SurahPage() {
                           ref={el => verseRefs.current[index] = el}
                           id={`verse-${verse.numberInSurah}`}
                           className={`relative inline ${currentVerse === index ? 'text-yellow-400' : ''}`}
-                          onClick={() => playVerse(index)}
+                          onClick={() => handleVersePlayPause(index)} // Updated to handle play/pause toggle
                         >
                           {verseText}
                           <span className="inline-block mx-1 text-yellow-400 select-none">
@@ -723,7 +734,7 @@ function SurahPage() {
                       <div className="flex gap-2">
                         <button 
                           className={`${currentVerse === index && isPlaying ? 'text-yellow-400 bg-yellow-400/20 rounded-full p-1' : 'text-yellow-400 hover:text-yellow-500'} transition-colors`}
-                          onClick={() => playVerse(index)}
+                          onClick={() => handleVersePlayPause(index)} // Updated to handle play/pause toggle
                         >
                           {currentVerse === index && isPlaying ? (
                             <Pause className="w-5 h-5" />
