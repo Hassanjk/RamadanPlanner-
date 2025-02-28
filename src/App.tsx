@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, X, Menu, Facebook, Youtube, Twitter, BookOpen, Clock, MapPin } from 'lucide-react';
+import { Moon, X, Menu, Facebook, Youtube, Twitter, BookOpen, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTransition } from './contexts/TransitionContext';
 import gsap from 'gsap';
@@ -14,6 +14,7 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [locationPermissionRequested, setLocationPermissionRequested] = useState(false);
   const [locationName, setLocationName] = useState('');
+  const [showLocationAlert, setShowLocationAlert] = useState(false);
   const navigate = useNavigate();
   const { setIsTransitioning } = useTransition();
 
@@ -37,6 +38,15 @@ function App() {
     longitude: geolocation.longitude
   });
 
+  // Check if location data is available
+  useEffect(() => {
+    if (geolocation.error || (!prayerTimes && !prayerTimesLoading && locationPermissionRequested)) {
+      setShowLocationAlert(true);
+    } else {
+      setShowLocationAlert(false);
+    }
+  }, [geolocation.error, prayerTimes, prayerTimesLoading, locationPermissionRequested]);
+
   // Request location permission as soon as the component mounts
   useEffect(() => {
     if (!locationPermissionRequested && navigator.geolocation) {
@@ -52,6 +62,7 @@ function App() {
           // Error callback - permission denied or error
           console.error("Error getting geolocation:", error);
           setLocationPermissionRequested(true);
+          setShowLocationAlert(true);
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
@@ -128,15 +139,22 @@ function App() {
     return date.gregorian;
   };
 
-  // Get Suhoor time (Fajr)
+  // Request location permission again
+  const requestLocationPermission = () => {
+    if (navigator.geolocation) {
+      setLocationPermissionRequested(false); // Reset to trigger the permission request again
+    }
+  };
+
+  // Get Suhoor time (Fajr) or prompt for location
   const getSuhoorTime = () => {
-    if (!prayerTimes) return "2:09 AM";
+    if (!prayerTimes) return null; // Return null instead of fake time
     return formatPrayerTime(prayerTimes.Fajr);
   };
 
-  // Get Iftar time (Maghrib)
+  // Get Iftar time (Maghrib) or prompt for location
   const getIftarTime = () => {
-    if (!prayerTimes) return "6:14 PM";
+    if (!prayerTimes) return null; // Return null instead of fake time
     return formatPrayerTime(prayerTimes.Maghrib);
   };
 
@@ -310,6 +328,23 @@ function App() {
                 </div>
               )}
 
+              {/* Location Alert */}
+              {showLocationAlert && (
+                <div className="mb-6 bg-yellow-400/20 border border-yellow-400 rounded-lg p-4 text-white max-w-xl mx-auto md:mx-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                    <h3 className="font-semibold text-yellow-400">Location required</h3>
+                  </div>
+                  <p className="mb-3">Please enable location services to get accurate prayer times for your area.</p>
+                  <button 
+                    onClick={requestLocationPermission}
+                    className="bg-yellow-400 text-emerald-900 px-4 py-2 rounded-full text-sm font-semibold hover:bg-yellow-500 transition-colors"
+                  >
+                    Enable Location
+                  </button>
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-6">
                 <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base">
                   <span>{getHijriDate()}</span>
@@ -320,18 +355,33 @@ function App() {
               </div>
 
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-8 md:mb-12">
-                <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-yellow-400" />
-                  <span>{getSuhoorTime()} Suhoor</span>
-                </div>
-                <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-yellow-400" />
-                  <span>{getIftarTime()} Iftar</span>
-                </div>
+                {getSuhoorTime() ? (
+                  <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-yellow-400" />
+                    <span>{getSuhoorTime()} Suhoor</span>
+                  </div>
+                ) : !showLocationAlert && (
+                  <div className="bg-transparent border border-yellow-400/50 rounded-full px-4 md:px-6 py-2 text-white/70 text-sm md:text-base flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-yellow-400/50" />
+                    <span>Enable location for Suhoor time</span>
+                  </div>
+                )}
+                
+                {getIftarTime() ? (
+                  <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-yellow-400" />
+                    <span>{getIftarTime()} Iftar</span>
+                  </div>
+                ) : !showLocationAlert && (
+                  <div className="bg-transparent border border-yellow-400/50 rounded-full px-4 md:px-6 py-2 text-white/70 text-sm md:text-base flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-yellow-400/50" />
+                    <span>Enable location for Iftar time</span>
+                  </div>
+                )}
               </div>
 
               {/* Next Prayer Indicator */}
-              {nextPrayer && (
+              {nextPrayer ? (
                 <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-xl p-4 mb-8 md:mb-12 max-w-xl mx-auto md:mx-0">
                   <div className="flex items-center justify-between">
                     <div>
@@ -343,6 +393,10 @@ function App() {
                       <p className="text-yellow-400 text-xl font-bold">{nextPrayer.timeRemaining}</p>
                     </div>
                   </div>
+                </div>
+              ) : !showLocationAlert && !prayerTimesLoading && (
+                <div className="bg-emerald-800/30 backdrop-blur-sm border border-emerald-700/30 rounded-xl p-4 mb-8 md:mb-12 max-w-xl mx-auto md:mx-0 flex items-center justify-center">
+                  <p className="text-white text-sm">Enable location to see next prayer time</p>
                 </div>
               )}
 
