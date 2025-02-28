@@ -92,6 +92,9 @@ function SurahPage() {
   const [availableReciters, setAvailableReciters] = useState<ReciterInfo[]>([]);
   const [recitersLoading, setRecitersLoading] = useState<boolean>(false);
 
+  // Add a state for surah sharing feedback
+  const [surahShareStatus, setSurahShareStatus] = useState<string | null>(null);
+
   // Load available translations when component mounts
   useEffect(() => {
     const loadTranslations = async () => {
@@ -299,6 +302,34 @@ function SurahPage() {
       setBookmarkFeedback('Reading position saved');
       setTimeout(() => {
         setBookmarkFeedback(null);
+      }, 2000);
+    }
+  };
+
+  // Handle sharing the surah URL via WhatsApp
+  const handleShareSurah = () => {
+    if (!surahInfo) return;
+    
+    // Get the current URL
+    const surahUrl = window.location.href;
+    
+    try {
+      // Create WhatsApp share URL
+      const whatsappUrl = `https://api.whatsapp.com/send?text=Read Surah ${surahInfo.englishName} (${surahInfo.name}) online: ${encodeURIComponent(surahUrl)}`;
+      
+      // Open in a new window
+      window.open(whatsappUrl, '_blank');
+      
+      // Show feedback
+      setSurahShareStatus('shared');
+      setTimeout(() => {
+        setSurahShareStatus(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Error sharing via WhatsApp:', error);
+      setSurahShareStatus('failed');
+      setTimeout(() => {
+        setSurahShareStatus(null);
       }, 2000);
     }
   };
@@ -554,8 +585,18 @@ function SurahPage() {
               >
                 <BookmarkPlus className="w-5 h-5" />
               </button>
-              <button className="text-yellow-400 hover:text-yellow-500 transition-colors">
+              <button 
+                className={`text-yellow-400 hover:text-yellow-500 transition-colors relative ${
+                  surahShareStatus ? 'bg-yellow-400/20 rounded-full p-1' : ''
+                }`}
+                onClick={handleShareSurah}
+              >
                 <Share2 className="w-5 h-5" />
+                {surahShareStatus && (
+                  <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-emerald-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    {surahShareStatus === 'shared' ? 'Opening WhatsApp...' : 'Failed to share'}
+                  </span>
+                )}
               </button>
               <button 
                 className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${
