@@ -141,7 +141,11 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `linear-gradient(to left, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url(${ramadanBg})` }}>
+    <div className="min-h-screen relative overflow-hidden bg-cover bg-center bg-no-repeat" 
+         style={{ 
+           backgroundImage: `linear-gradient(to left, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.6)), url(${ramadanBg})`,
+           backgroundPosition: 'left center' // Shifted background to the left for better content positioning
+         }}>
       <div className="relative z-10">
         {/* Navigation */}
         <nav className="absolute top-0 left-0 right-0 p-4 z-50">
@@ -190,66 +194,104 @@ function App() {
               </button>
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button - Improved styling */}
             <button 
-              className="md:hidden text-white"
+              className="md:hidden flex items-center justify-center w-10 h-10 bg-emerald-900/70 rounded-full text-white"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             >
               {isMenuOpen ? (
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               ) : (
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5" />
               )}
             </button>
           </div>
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu - Improved styling and animation */}
           {isMenuOpen && (
-            <div className="md:hidden absolute top-full left-0 right-0 bg-emerald-900/95 border-t border-yellow-400/20 p-4">
-              <div className="flex flex-col space-y-4">
-                <a href="#" className="text-white border-b-2 border-white w-fit">Home</a>
-                <button 
-                  onClick={() => handleNavigation('/ramadan-calendar')}
-                  className="text-white hover:text-yellow-400 transition-colors text-left"
-                >
-                  Calendar
-                </button>
-                <button 
-                  onClick={() => handleNavigation('/prayer-timings')}
-                  className="text-white hover:text-yellow-400 transition-colors text-left"
-                >
-                  Prayer Timings
-                </button>
-                <button 
-                  onClick={() => handleNavigation('/quran')}
-                  className="text-white hover:text-yellow-400 transition-colors text-left"
-                >
-                  Quran
-                </button>
-                <button 
-                  onClick={() => handleNavigation('/recipes')}
-                  className="text-white hover:text-yellow-400 transition-colors text-left"
-                >
-                  Recipe
-                </button>
-                <button 
-                  onClick={() => handleNavigation('/store')}
-                  className="text-white hover:text-yellow-400 transition-colors text-left"
-                >
-                  Store
-                </button>
-                <button className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">
-                  Support Us
-                </button>
+            <div className="md:hidden fixed inset-0 bg-emerald-900/95 z-40 animate-fadeIn">
+              <div className="flex flex-col h-full">
+                {/* Close button at top right */}
+                <div className="flex justify-end p-4">
+                  <button 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-400/20 text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {/* Menu items with better spacing and styling */}
+                <div className="flex-1 flex flex-col items-center justify-center space-y-6 px-8 pb-16">
+                  <a 
+                    href="#" 
+                    className="text-xl text-white border-b-2 border-white pb-1 w-fit"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Home
+                  </a>
+                  <button 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleNavigation('/ramadan-calendar');
+                    }}
+                    className="text-xl text-white hover:text-yellow-400 transition-colors"
+                  >
+                    Calendar
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleNavigation('/prayer-timings');
+                    }}
+                    className="text-xl text-white hover:text-yellow-400 transition-colors"
+                  >
+                    Prayer Timings
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleNavigation('/quran');
+                    }}
+                    className="text-xl text-white hover:text-yellow-400 transition-colors"
+                  >
+                    Quran
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleNavigation('/recipes');
+                    }}
+                    className="text-xl text-white hover:text-yellow-400 transition-colors"
+                  >
+                    Recipe
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleNavigation('/store');
+                    }}
+                    className="text-xl text-white hover:text-yellow-400 transition-colors"
+                  >
+                    Store
+                  </button>
+                  <button 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="mt-6 bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors w-full max-w-xs"
+                  >
+                    Support Us
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </nav>
 
-        {/* Main Content */}
+        {/* Main Content - Centered better for mobile */}
         <div className="container mx-auto pt-24 md:pt-32 px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Column */}
+            {/* Left Column - Centered on mobile */}
             <div className="flex flex-col justify-center text-center md:text-left">
               <h1 className="text-4xl md:text-6xl font-bold text-yellow-400 mb-8">
                 Ramadan Kareem
@@ -310,11 +352,11 @@ function App() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <button 
-                  onClick={() => handleNavigation('/store')}
+                  onClick={() => handleNavigation('/quran')}
                   className="bg-yellow-400 text-emerald-900 px-8 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors flex items-center space-x-2"
                 >
                   <BookOpen className="w-5 h-5" />
-                  <span>Get Ramadan Tips Book Now</span>
+                  <span>Read, Listen and Download Quran</span>
                 </button>
               </div>
             </div>
