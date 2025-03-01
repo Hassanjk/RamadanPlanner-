@@ -52,7 +52,7 @@ export const usePrayerTimes = ({
   country,
   address,
   date,
-  method = Number(Cookies.get('prayerMethod')) || 3,
+  method, // We'll ignore this parameter and always use 1
   adjustments
 }: UsePrayerTimesProps): UsePrayerTimesState => {
   const [state, setState] = useState<UsePrayerTimesState>({
@@ -78,13 +78,16 @@ export const usePrayerTimes = ({
     
     try {
       let response: PrayerTimesResponse;
+      
+      // Always use Muslim World League (method 1)
+      const calculationMethod = 1;
 
       if (latitude && longitude) {
-        response = await getPrayerTimesByCoordinates(latitude, longitude, date, method, adjustments);
+        response = await getPrayerTimesByCoordinates(latitude, longitude, date, calculationMethod, adjustments);
       } else if (city && country) {
-        response = await getPrayerTimesByCity(city, country, date, method, adjustments);
+        response = await getPrayerTimesByCity(city, country, date, calculationMethod, adjustments);
       } else if (address) {
-        response = await getPrayerTimesByAddress(address, date, method, adjustments);
+        response = await getPrayerTimesByAddress(address, date, calculationMethod, adjustments);
       } else {
         throw new Error('Insufficient location data provided');
       }
@@ -114,8 +117,8 @@ export const usePrayerTimes = ({
         refresh: fetchPrayerTimes
       });
 
-      // Save the method preference
-      Cookies.set('prayerMethod', method.toString(), { expires: 365 });
+      // Save the method preference - always set to 1
+      Cookies.set('prayerMethod', '1', { expires: 365 });
     } catch (error) {
       setState(prev => ({
         ...prev,

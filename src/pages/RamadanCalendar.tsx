@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Moon, ArrowLeft, Calendar, MapPin, Download, Info, RefreshCw, AlertTriangle, Settings, ChevronDown, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRamadanCalendar } from '../hooks/useRamadanCalendar';
-import { formatPrayerTime } from '../services/ramadanService';
+import { formatPrayerTime } from '../services/prayerService';
 import { generateRamadanCalendarPDF } from '../utils/pdfUtils';
 import Cookies from 'js-cookie';
 // Import the image properly
@@ -63,14 +63,59 @@ function RamadanCalendar() {
     }
   };
 
-  // Format date for display
+  // Format date for display - Fixed to handle different date formats
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString.split('-').reverse().join('-'));
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      day: 'numeric', 
-      month: 'short'
-    });
+    try {
+      // Check if format is DD-MM-YYYY
+      if (dateString.includes('-')) {
+        const [day, month, year] = dateString.split('-').map(Number);
+        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+          const date = new Date(year, month - 1, day);
+          return date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short'
+          });
+        }
+      }
+      
+      // Fallback to standard Date parsing
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  // Safe prayer time formatter that handles invalid values and timezone information
+  const safeFormatPrayerTime = (timeString: string | undefined) => {
+    if (!timeString) return '--:--';
+    
+    try {
+      // Strip timezone information if present (e.g., "05:53 (+03)")
+      const cleanTimeString = timeString.replace(/\s*\([+-]\d+\)/, '').trim();
+      
+      // Check if it's a valid time string after cleaning
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(cleanTimeString)) {
+        return formatPrayerTime(timeString);
+      }
+      
+      // Try to format anyway in case our regex missed something
+      const formattedTime = formatPrayerTime(timeString);
+      if (formattedTime !== "--:--") {
+        return formattedTime;
+      }
+      
+      return '--:--';
+    } catch (error) {
+      console.error('Error formatting prayer time:', error, timeString);
+      return '--:--';
+    }
   };
 
   // Handle download calendar
@@ -237,17 +282,26 @@ function RamadanCalendar() {
 
             {/* Table Body */}
             <div className="divide-y divide-emerald-700/30">
-              {calendar.map((day, index) => (
-                <div key={index} className="grid grid-cols-7 gap-4 p-4 text-white hover:bg-emerald-800/40 transition-colors">
-                  <div className="font-semibold">{day.date.hijri.day}</div>
-                  <div>{formatDate(day.date.gregorian.date)}</div>
-                  <div className="text-yellow-400">{formatPrayerTime(day.timings.Imsak)}</div>
-                  <div>{formatPrayerTime(day.timings.Fajr)}</div>
-                  <div>{formatPrayerTime(day.timings.Dhuhr)}</div>
-                  <div>{formatPrayerTime(day.timings.Asr)}</div>
-                  <div className="text-yellow-400">{formatPrayerTime(day.timings.Maghrib)}</div>
-                </div>
-              ))}
+              {calendar.map((day, index) => {
+                // Ensure the date exists and is properly formatted
+                const date = day.date?.gregorian?.date || '';
+                const dayNumber = day.date?.hijri?.day || (index + 1).toString();
+                
+                // Ensure timings exist before trying to format them
+                const timings = day.timings || {};
+                
+                return (
+                  <div key={index} className="grid grid-cols-7 gap-4 p-4 text-white hover:bg-emerald-800/40 transition-colors">
+                    <div className="font-semibold">{dayNumber}</div>
+                    <div>{formatDate(date)}</div>
+                    <div className="text-yellow-400">{safeFormatPrayerTime(timings.Imsak)}</div>
+                    <div>{safeFormatPrayerTime(timings.Fajr)}</div>
+                    <div>{safeFormatPrayerTime(timings.Dhuhr)}</div>
+                    <div>{safeFormatPrayerTime(timings.Asr)}</div>
+                    <div className="text-yellow-400">{safeFormatPrayerTime(timings.Maghrib)}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

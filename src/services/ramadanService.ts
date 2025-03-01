@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { PrayerTimesResponse } from './prayerService';
+import { PrayerTimesResponse, formatPrayerTime as formatPrayerTimeFromPrayerService } from './prayerService';
 
 // Base API URL for Aladhan API
 const API_URL = 'https://api.aladhan.com/v1';
@@ -55,26 +55,12 @@ export interface RamadanCalendarResponse {
   data: RamadanDay[];
 }
 
-// Format prayer time from API response (remove timezone info)
-export const formatPrayerTime = (time: string): string => {
-  if (!time) return '';
-  
-  // Remove timezone info if present
-  const timeWithoutTZ = time.replace(/\s\([A-Z]+\)$/, '');
-  
-  // Handle various time formats
-  const timeParts = timeWithoutTZ.split(':');
-  if (timeParts.length < 2) return timeWithoutTZ;
-  
-  let hours = parseInt(timeParts[0], 10);
-  const minutes = timeParts[1].substring(0, 2);
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  
-  // Convert to 12-hour format
-  hours = hours % 12;
-  hours = hours === 0 ? 12 : hours;
-  
-  return `${hours}:${minutes} ${ampm}`;
+// Re-export the formatPrayerTime function
+export const formatPrayerTime = formatPrayerTimeFromPrayerService;
+
+// Function to determine the default calculation method (always 1 - Muslim World League)
+export const getDefaultCalculationMethod = (): number => {
+  return 1; // Always return Muslim World League
 };
 
 // Get Ramadan calendar by address

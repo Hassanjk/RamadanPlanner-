@@ -8,20 +8,20 @@ import Cookies from 'js-cookie';
 // Import the image properly
 import backgroundImage from '../assets/images/background.jpeg';
 
-// Map of country to recommended calculation method
+// Map of country to recommended calculation method - no longer used for auto-selection
 const countryMethodMap: Record<string, number> = {
-  'Singapore': 4, // Assuming ID 4 is for "Majlis Ugama Islam Singapura, Singapore"
-  'France': 5, // Assuming ID 5 is for "Union Organization Islamic de France"
-  'Turkey': 6, // Assuming ID 6 is for "Diyanet isleri Baskanlljl, Turkey"
-  'Russia': 7, // Assuming ID 7 is for "Spiritual Administration of Muslims of Russia"
-  'United States': 2, // ISNA for United States
+  'Singapore': 4,
+  'France': 5,
+  'Turkey': 6,
+  'Russia': 7,
+  'United States': 2,
 };
 
 function PrayerTimings() {
   const navigate = useNavigate();
   const [location, setLocation] = useState(Cookies.get('prayerLocation') || '');
   const [showMethodDropdown, setShowMethodDropdown] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState(Number(Cookies.get('prayerMethod')) || 3);
+  const [selectedMethod, setSelectedMethod] = useState(Number(Cookies.get('prayerMethod')) || 1); // Default to Muslim World League (1)
   const [useGeolocationData, setUseGeolocationData] = useState(
     Cookies.get('useGeolocation') === 'false' ? false : true // Default to true
   );
@@ -52,7 +52,7 @@ function PrayerTimings() {
     method: selectedMethod
   });
 
-  // Update location display and automatically set calculation method
+  // Update location display but DON'T auto-select calculation method
   useEffect(() => {
     if (useGeolocationData && meta.latitude && meta.longitude) {
       // Reverse geocode to get location name and country
@@ -66,18 +66,15 @@ function PrayerTimings() {
           setLocation(locationName || `${meta.latitude.toFixed(2)}, ${meta.longitude.toFixed(2)}`);
           Cookies.set('prayerLocation', locationName, { expires: 365 });
           
-          // If country is detected, set the calculation method based on country
+          // Set country detected for display purposes only
           if (country) {
             setCountryDetected(country);
-            
-            // Check if we have a recommended method for this country
-            for (const [mappedCountry, methodId] of Object.entries(countryMethodMap)) {
-              if (country.includes(mappedCountry)) {
-                setSelectedMethod(methodId);
-                Cookies.set('prayerMethod', methodId.toString(), { expires: 365 });
-                break;
-              }
-            }
+          }
+          
+          // Always use Muslim World League (1) regardless of location
+          if (selectedMethod !== 1) {
+            setSelectedMethod(1);
+            Cookies.set('prayerMethod', '1', { expires: 365 });
           }
         })
         .catch(() => {
@@ -289,12 +286,12 @@ function PrayerTimings() {
           </div>
         )}
 
-        {/* Auto-selected Method Info (when country is detected) */}
+        {/* Auto-selected Method Info (when country is detected) - Updated message */}
         {countryDetected && !error && (
           <div className="max-w-3xl mx-auto mb-6">
             <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-4 text-center">
               <p className="text-white">
-                <span className="text-yellow-300">Auto-selected method</span> based on your location in <span className="text-yellow-300">{countryDetected}</span>
+                <span className="text-yellow-300">Muslim World League method</span> is used for prayer times in <span className="text-yellow-300">{countryDetected}</span>
               </p>
             </div>
           </div>

@@ -25,7 +25,7 @@ function App() {
     maximumAge: 0
   });
   
-  // Get prayer times based on location
+  // Get prayer times based on location with Muslim World League method
   const { 
     prayerTimes, 
     nextPrayer, 
@@ -35,7 +35,8 @@ function App() {
     error: prayerTimesError 
   } = usePrayerTimes({
     latitude: geolocation.latitude,
-    longitude: geolocation.longitude
+    longitude: geolocation.longitude,
+    method: 1 // Set Muslim World League as default
   });
 
   // Check if location data is available
@@ -357,12 +358,12 @@ function App() {
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mb-8 md:mb-12">
                 {getSuhoorTime() ? (
                   <div className="bg-transparent border border-yellow-400 rounded-full px-4 md:px-6 py-2 text-white text-sm md:text-base flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-400" />
+                    <Clock className="w-4 h-4 text-red-500" /> {/* Changed from yellow-400 to red-500 */}
                     <span>{getSuhoorTime()} Suhoor</span>
                   </div>
                 ) : !showLocationAlert && (
                   <div className="bg-transparent border border-yellow-400/50 rounded-full px-4 md:px-6 py-2 text-white/70 text-sm md:text-base flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-400/50" />
+                    <Clock className="w-4 h-4 text-red-500/50" /> {/* Changed from yellow-400/50 to red-500/50 */}
                     <span>Enable location for Suhoor time</span>
                   </div>
                 )}

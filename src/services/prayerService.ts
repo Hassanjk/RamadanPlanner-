@@ -138,16 +138,46 @@ const formatDate = (date?: string | Date): string => {
   return `${day}-${month}-${year}`;
 };
 
-// Format prayer time from API response
+// Format prayer time from API response - Enhanced with better timezone handling
 export const formatPrayerTime = (timeString: string): string => {
   if (!timeString) return "--:--";
   
   try {
-    // Assuming timeString is in 24-hour format like "14:23"
-    const time = new Date(`2000-01-01T${timeString}`);
-    return time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    // Strip timezone information (like (+03)) if present
+    const cleanTimeString = timeString.replace(/\s*\([+-]\d+\)/, '').trim();
+    
+    // Handle multiple time formats
+    if (cleanTimeString.includes("(")) {
+      // Extract just the time part before any parentheses
+      timeString = cleanTimeString.split("(")[0].trim();
+    } else {
+      timeString = cleanTimeString;
+    }
+    
+    // Check if it's already in 12-hour format with AM/PM
+    if (timeString.toLowerCase().includes('am') || timeString.toLowerCase().includes('pm')) {
+      // Already formatted, just return it
+      return timeString;
+    }
+    
+    // Handle 24-hour format "HH:MM" or "HH:MM:SS"
+    const timeParts = timeString.split(':');
+    if (timeParts.length >= 2) {
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = parseInt(timeParts[1], 10);
+      
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        const time = new Date();
+        time.setHours(hours, minutes, 0, 0);
+        return time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
+    }
+    
+    // If we couldn't parse it, return original string
+    return timeString;
   } catch (error) {
-    return timeString; // Return the original string if there's any error
+    console.error("Error formatting prayer time:", error, timeString);
+    return "--:--"; // Return placeholder on error
   }
 };
 
@@ -161,7 +191,7 @@ const getDefaultParams = (
   adjustments?: string
 ): ApiParams => {
   const params: ApiParams = {
-    method: method || 3, // Default to Muslim World League
+    method: method || 1, // Default to Muslim World League (changed from 3 to 1)
     latitudeAdjustmentMethod: 3, // Default to Angle Based
     school: 0, // Default to Shafi (Standard)
     adjustment: 1, // Default adjustment
@@ -275,7 +305,7 @@ export const getPrayerCalendar = async (
   month: number,
   latitude: number,
   longitude: number,
-  method: number = 3,
+  method: number = 1, // Changed from 3 to 1 (Muslim World League)
   adjustments?: string
 ): Promise<PrayerTimesResponse[]> => {
   try {
